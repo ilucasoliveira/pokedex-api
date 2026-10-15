@@ -1,0 +1,17 @@
+# Ambiente virtual
+.venv/
+
+# Segredos
+.env
+
+# Gerados pelo Python
+__pycache__/
+*.py[cod]
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor
+.vscode/
