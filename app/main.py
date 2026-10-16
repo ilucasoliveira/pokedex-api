@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from app.database import get_db, engine
+from app.database import engine
 from app.models import Base
+from app.routers.pokemon import router
 
 
 @asynccontextmanager
@@ -28,3 +29,6 @@ app = FastAPI(
 @app.get("/health", tags=["health"])
 def health_check():
     return {"status": "OK"}
+
+
+app.include_router(router)
