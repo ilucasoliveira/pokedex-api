@@ -8,7 +8,7 @@ class Base(DeclarativeBase):
 
 class Pokemon(Base):
     __tablename__ = "pokemon"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(String(20), unique=True)
     height: Mapped[int] = mapped_column(Integer)
     weight: Mapped[int] = mapped_column(Integer)
