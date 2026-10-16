@@ -1,3 +1,5 @@
+import httpx
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
@@ -10,22 +12,19 @@ from app.schemas import PokemonCreate, PokemonUpdate, PokemonResponse
 router = APIRouter(prefix="/pokemon", tags=["pokemon"])
 
 
-@router.post("", status_code=201, response_model=PokemonResponse)
-async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)):
+async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     result = await db.execute(
         select(Pokemon).where(
             or_(Pokemon.name == pokemon.name, Pokemon.id == pokemon.id)
         )
     )
-    conflict = result.scalars().first()
-
-    if conflict:
+    if result.scalars().first():
         raise HTTPException(status_code=409, detail="Pokémon already exists.")
 
     list_types = []
     for name in pokemon.types:
-        types = await db.execute(select(Type).where(Type.name == name))
-        type_obj = types.scalars().first()
+        result_type = await db.execute(select(Type).where(Type.name == name))
+        type_obj = result_type.scalars().first()
 
         if not type_obj:
             type_obj = Type(name=name)
@@ -38,6 +37,43 @@ async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_
     await db.commit()
 
     return new_pokemon
+
+
+@router.post("", status_code=201, response_model=PokemonResponse)
+async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)):
+    return await save_pokemon(pokemon, db)
+
+
+@router.post("/import/{name}", status_code=201, response_model=PokemonResponse)
+async def import_pokemon(name: str, db: AsyncSession = Depends(get_db)):
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"https://pokeapi.co/api/v2/pokemon/{name.lower()}"
+            )
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail="PokéAPI is unavailable.")
+
+    if response.status_code == 404:
+        raise HTTPException(status_code=404, detail="Pokémon not found in PokéAPI.")
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=503, detail="PokéAPI returned an unexpected error."
+        )
+
+    data = response.json()
+
+    pokemon_data = PokemonCreate(
+        id=data["id"],
+        name=data["name"],
+        height=data["height"],
+        weight=data["weight"],
+        types=[item["type"]["name"] for item in data["types"]],
+        sprites=data["sprites"]["front_default"],
+    )
+
+    return await save_pokemon(pokemon_data, db)
 
 
 @router.get("/{pokemon_id}", status_code=200, response_model=PokemonResponse)
@@ -86,7 +122,20 @@ async def update_pokemon(
     if not pokemon:
         raise HTTPException(status_code=404, detail="Pokémon not found")
 
-    for key, value in new_data.model_dump(exclude_unset=True).items():
+    if new_data.name:
+        result = await db.execute(
+            select(Pokemon).where(
+                Pokemon.name == new_data.name, Pokemon.id != pokemon_id
+            )
+        )
+        conflict = result.scalars().first()
+
+        if conflict:
+            raise HTTPException(status_code=409, detail="Pokémon name already exists.")
+
+    for key, value in new_data.model_dump(
+        exclude_unset=True, exclude={"types"}, exclude_none=True
+    ).items():
         setattr(pokemon, key, value)
 
     if new_data.types:
@@ -103,8 +152,6 @@ async def update_pokemon(
         pokemon.types = list_types
 
     await db.commit()
-    await db.refresh(pokemon)
-
     return pokemon
 
 
