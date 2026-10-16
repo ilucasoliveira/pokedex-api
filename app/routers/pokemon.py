@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, or_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -11,14 +12,14 @@ router = APIRouter(prefix="/pokemon", tags=["pokemon"])
 
 @router.post("", status_code=201, response_model=PokemonResponse)
 async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)):
-    conflict = await db.execute(
+    result = await db.execute(
         select(Pokemon).where(
             or_(Pokemon.name == pokemon.name, Pokemon.id == pokemon.id)
         )
     )
-    result = conflict.scalars().first()
+    conflict = result.scalars().first()
 
-    if result:
+    if conflict:
         raise HTTPException(status_code=409, detail="Pokémon already exists.")
 
     list_types = []
@@ -37,3 +38,18 @@ async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_
     await db.commit()
 
     return new_pokemon
+
+
+@router.get("/{pokemon_id}", status_code=200, response_model=PokemonResponse)
+async def read_one_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Pokemon)
+        .where(Pokemon.id == pokemon_id)
+        .options(selectinload(Pokemon.types))
+    )
+    pokemon = result.scalars().first()
+
+    if not pokemon:
+        raise HTTPException(status_code=404, detail="Pokémon not found")
+
+    return pokemon
