@@ -1,3 +1,8 @@
+import os
+
+os.environ.setdefault("SECRET_KEY", "test-secret-key-only-for-tests-not-for-production")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
 import types
 
 import httpx
@@ -12,6 +17,7 @@ from app.models import Base
 from app.routers import pokemon as pokemon_router
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_USER = {"username": "ash", "password": "pikachu123"}
 
 
 @pytest.fixture
@@ -30,7 +36,7 @@ async def session_maker():
 
 
 @pytest.fixture
-async def client(session_maker):
+async def anon_client(session_maker):
     async def override_get_db():
         async with session_maker() as session:
             yield session
@@ -42,6 +48,21 @@ async def client(session_maker):
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def client(anon_client):
+    await anon_client.post("/auth/register", json=TEST_USER)
+    response = await anon_client.post("/auth/token", data=TEST_USER)
+    token = response.json()["access_token"]
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {token}"},
+    ) as test_client:
+        yield test_client
 
 
 @pytest.fixture(autouse=True)
