@@ -15,4 +15,6 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Serviços de hospedagem como o Render definem a porta pela variável PORT.
+# Localmente, sem PORT, a API sobe na 8000.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
