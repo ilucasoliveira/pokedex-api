@@ -1,24 +1,34 @@
-import json
+from typing import Any
+
 import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from sqlalchemy import select, or_
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Pokemon, Type
-from app.schemas import ErrorResponse, PokemonCreate, PokemonUpdate, PokemonResponse
+from app.schemas import (
+    ErrorResponse,
+    PaginationInfo,
+    PokemonCreate,
+    PokemonListResponse,
+    PokemonResponse,
+    PokemonUpdate,
+)
 from app.cache import get_cache, set_cache, delete_cache_by_pattern, delete_cache
 from app.security import get_current_user
 
-router = APIRouter(prefix="/pokemon", tags=["pokemon"])
+router = APIRouter(prefix="/pokemons", tags=["pokemons"])
 
-UNAUTHORIZED = {
+ErrorResponses = dict[int | str, dict[str, Any]]
+
+UNAUTHORIZED: ErrorResponses = {
     401: {"model": ErrorResponse, "description": "Missing, invalid or expired token."}
 }
-NOT_FOUND = {404: {"model": ErrorResponse, "description": "Pokémon not found."}}
-CONFLICT = {
+NOT_FOUND: ErrorResponses = {404: {"model": ErrorResponse, "description": "Pokémon not found."}}
+CONFLICT: ErrorResponses = {
     409: {
         "model": ErrorResponse,
         "description": "A Pokémon with this id or name already exists.",
@@ -35,7 +45,7 @@ async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     if result.scalars().first():
         raise HTTPException(status_code=409, detail="Pokémon already exists.")
 
-    list_types = []
+    list_types: list[Type] = []
     for name in pokemon.types:
         result_type = await db.execute(select(Type).where(Type.name == name))
         type_obj = result_type.scalars().first()
@@ -67,7 +77,9 @@ async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     ),
     responses={**UNAUTHORIZED, **CONFLICT},
 )
-async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)):
+async def create_pokemon(
+    pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)
+) -> Pokemon:
     return await save_pokemon(pokemon, db)
 
 
@@ -102,7 +114,7 @@ async def import_pokemon(
         examples=["pikachu"],
     ),
     db: AsyncSession = Depends(get_db),
-):
+) -> Pokemon:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
@@ -147,7 +159,7 @@ async def import_pokemon(
 async def read_one_pokemon(
     pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
     db: AsyncSession = Depends(get_db),
-):
+) -> PokemonResponse:
     cache_key = f"pokemon:{pokemon_id}"
     cached_pokemon = await get_cache(cache_key)
 
@@ -173,37 +185,62 @@ async def read_one_pokemon(
 @router.get(
     "",
     status_code=200,
-    response_model=list[PokemonResponse],
+    response_model=PokemonListResponse,
     summary="List Pokémon",
     description=(
-        "Returns a paginated list of Pokémon ordered by Pokédex number. "
+        "Returns a page of Pokémon ordered by Pokédex number, plus pagination info: "
+        "the total in the database and the paths to the next and previous pages. "
         "Public endpoint. Each page is cached in Redis for up to 1 hour."
     ),
 )
 async def read_pokemons(
-    page: int = Query(default=1, ge=1, description="Page number, starting at 1."),
     limit: int = Query(
-        default=10, ge=1, le=100, description="Items per page (1 to 100)."
+        default=20, ge=1, le=100, description="Items per page (1 to 100)."
+    ),
+    offset: int = Query(
+        default=0, ge=0, description="Number of items to skip before the page."
     ),
     db: AsyncSession = Depends(get_db),
-):
-    cache_key = f"pokemon:list:page={page}:limit={limit}"
-    cached_pokemons = await get_cache(cache_key)
+) -> PokemonListResponse:
+    cache_key = f"pokemon:list:limit={limit}:offset={offset}"
+    cached_page = await get_cache(cache_key)
 
-    if cached_pokemons:
-        return json.loads(cached_pokemons)
+    if cached_page:
+        return PokemonListResponse.model_validate_json(cached_page)
+
+    total = await db.scalar(select(func.count()).select_from(Pokemon)) or 0
 
     result = await db.execute(
         select(Pokemon)
         .options(selectinload(Pokemon.types))
         .order_by(Pokemon.id)
-        .offset((page - 1) * limit)
+        .offset(offset)
         .limit(limit)
     )
     pokemons = result.scalars().all()
 
-    response = [PokemonResponse.model_validate(p).model_dump() for p in pokemons]
-    await set_cache(cache_key, json.dumps(response), ttl=3600)
+    next_offset = offset + limit
+    previous_offset = max(offset - limit, 0)
+
+    response = PokemonListResponse(
+        data=[PokemonResponse.model_validate(p) for p in pokemons],
+        pagination=PaginationInfo(
+            total=total,
+            limit=limit,
+            offset=offset,
+            next=(
+                f"{router.prefix}?limit={limit}&offset={next_offset}"
+                if next_offset < total
+                else None
+            ),
+            previous=(
+                f"{router.prefix}?limit={limit}&offset={previous_offset}"
+                if offset > 0
+                else None
+            ),
+        ),
+    )
+    await set_cache(cache_key, response.model_dump_json(), ttl=3600)
 
     return response
 
@@ -232,7 +269,7 @@ async def update_pokemon(
     new_data: PokemonUpdate,
     pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
     db: AsyncSession = Depends(get_db),
-):
+) -> Pokemon:
     result = await db.execute(
         select(Pokemon)
         .where(Pokemon.id == pokemon_id)
@@ -260,7 +297,7 @@ async def update_pokemon(
         setattr(pokemon, key, value)
 
     if new_data.types:
-        list_types = []
+        list_types: list[Type] = []
         for name in new_data.types:
             types = await db.execute(select(Type).where(Type.name == name))
             type_obj = types.scalars().first()
@@ -294,7 +331,7 @@ async def update_pokemon(
 async def delete_pokemon(
     pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     result = await db.execute(select(Pokemon).where(Pokemon.id == pokemon_id))
     pokemon = result.scalars().first()
 

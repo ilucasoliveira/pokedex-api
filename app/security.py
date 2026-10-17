@@ -14,9 +14,10 @@ from app.models import User
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
+_secret_key = os.getenv("SECRET_KEY")
+if not _secret_key:
     raise RuntimeError("SECRET_KEY não definida no .env")
+SECRET_KEY: str = _secret_key
 
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
@@ -34,7 +35,7 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 def create_access_token(subject: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": subject, "exp": expire}
+    payload: dict[str, str | datetime] = {"sub": subject, "exp": expire}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models import Type
@@ -48,13 +50,12 @@ class PokemonCreate(BaseModel):
 
     @field_validator("types", mode="after")
     @classmethod
-    def padronizar_tipos(cls, value):
-        value = [i.lower() for i in value]
-        return value
+    def padronizar_tipos(cls, value: list[str]) -> list[str]:
+        return [i.lower() for i in value]
 
     @field_validator("name", mode="after")
     @classmethod
-    def padronizar_nome(cls, value):
+    def padronizar_nome(cls, value: str) -> str:
         return value.lower()
 
 
@@ -92,16 +93,15 @@ class PokemonUpdate(BaseModel):
 
     @field_validator("types")
     @classmethod
-    def padronizar_tipos(cls, value):
-        if not value:
+    def padronizar_tipos(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
             return value
-        value = [i.lower() for i in value]
-        return value
+        return [i.lower() for i in value]
 
     @field_validator("name")
     @classmethod
-    def padronizar_nome(cls, value):
-        if not value:
+    def padronizar_nome(cls, value: str | None) -> str | None:
+        if value is None:
             return value
         return value.lower()
 
@@ -132,8 +132,51 @@ class PokemonResponse(BaseModel):
 
     @field_validator("types", mode="before")
     @classmethod
-    def extrai_nomes_dos_tipos(cls, value):
+    def extrai_nomes_dos_tipos(cls, value: list[Any]) -> list[str]:
         return [i.name if isinstance(i, Type) else i for i in value]
+
+
+class PaginationInfo(BaseModel):
+    total: int = Field(description="Total number of Pokémon in the database.")
+    limit: int = Field(description="Maximum number of items in this page.")
+    offset: int = Field(description="Number of items skipped before this page.")
+    next: str | None = Field(
+        description="Path to the next page, or null on the last page."
+    )
+    previous: str | None = Field(
+        description="Path to the previous page, or null on the first page."
+    )
+
+
+class PokemonListResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "data": [
+                        {
+                            "id": 1,
+                            "name": "bulbasaur",
+                            "height": 7,
+                            "weight": 69,
+                            "types": ["grass", "poison"],
+                            "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
+                        }
+                    ],
+                    "pagination": {
+                        "total": 151,
+                        "limit": 20,
+                        "offset": 0,
+                        "next": "/pokemons?limit=20&offset=20",
+                        "previous": None,
+                    },
+                }
+            ]
+        }
+    )
+
+    data: list[PokemonResponse] = Field(description="Pokémon in this page.")
+    pagination: PaginationInfo
 
 
 class ErrorResponse(BaseModel):
@@ -162,12 +205,12 @@ class UserCreate(BaseModel):
 
     @field_validator("username", mode="after")
     @classmethod
-    def padronizar_username(cls, value):
+    def padronizar_username(cls, value: str) -> str:
         return value.lower()
 
     @field_validator("password", mode="after")
     @classmethod
-    def validar_tamanho_em_bytes(cls, value):
+    def validar_tamanho_em_bytes(cls, value: str) -> str:
         if len(value.encode()) > 72:
             raise ValueError("Password must be at most 72 bytes.")
         return value

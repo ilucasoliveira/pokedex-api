@@ -4,11 +4,13 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-only-for-tests-not-for-prod
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
 import types
+from collections.abc import AsyncGenerator, Callable
+from typing import Any
 
 import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app.database import get_db
@@ -21,7 +23,7 @@ TEST_USER = {"username": "ash", "password": "pikachu123"}
 
 
 @pytest.fixture
-async def session_maker():
+async def session_maker() -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
     engine = create_async_engine(
         TEST_DATABASE_URL,
         connect_args={"check_same_thread": False},
@@ -36,8 +38,10 @@ async def session_maker():
 
 
 @pytest.fixture
-async def anon_client(session_maker):
-    async def override_get_db():
+async def anon_client(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> AsyncGenerator[AsyncClient, None]:
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         async with session_maker() as session:
             yield session
 
@@ -51,7 +55,7 @@ async def anon_client(session_maker):
 
 
 @pytest.fixture
-async def client(anon_client):
+async def client(anon_client: AsyncClient) -> AsyncGenerator[AsyncClient, None]:
     await anon_client.post("/auth/register", json=TEST_USER)
     response = await anon_client.post("/auth/token", data=TEST_USER)
     token = response.json()["access_token"]
@@ -66,11 +70,11 @@ async def client(anon_client):
 
 
 @pytest.fixture(autouse=True)
-def disable_cache(monkeypatch):
-    async def fake_get_cache(key):
+def disable_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get_cache(key: str) -> None:
         return None
 
-    async def fake_noop(*args, **kwargs):
+    async def fake_noop(*args: Any, **kwargs: Any) -> None:
         return None
 
     monkeypatch.setattr(pokemon_router, "get_cache", fake_get_cache)
@@ -80,11 +84,13 @@ def disable_cache(monkeypatch):
 
 
 @pytest.fixture
-def mock_pokeapi(monkeypatch):
+def mock_pokeapi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Callable[[Callable[[httpx.Request], httpx.Response]], None]:
     real_async_client = httpx.AsyncClient
 
-    def install(handler):
-        def fake_async_client(*args, **kwargs):
+    def install(handler: Callable[[httpx.Request], httpx.Response]) -> None:
+        def fake_async_client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
             return real_async_client(
                 *args, transport=httpx.MockTransport(handler), **kwargs
             )

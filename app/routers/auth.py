@@ -24,7 +24,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
         409: {"model": ErrorResponse, "description": "Username already exists."}
     },
 )
-async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register(user: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
     result = await db.execute(select(User).where(User.username == user.username))
     if result.scalars().first():
         raise HTTPException(status_code=409, detail="Username already exists.")
@@ -55,7 +55,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
-):
+) -> Token:
     result = await db.execute(
         select(User).where(User.username == form_data.username.lower())
     )
