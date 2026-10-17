@@ -1,5 +1,7 @@
 # Pokedex API
 
+![CI](https://github.com/ilucasoliveira/pokedex-api/actions/workflows/ci.yml/badge.svg)
+
 API REST inspirada na [PokéAPI](https://pokeapi.co/) para cadastrar, consultar, atualizar e excluir pokémons. Projeto final do módulo de Python para back-end do curso Full Stack Python da EBAC.
 
 Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em cache no Redis e protege as rotas de escrita com autenticação JWT.
@@ -113,6 +115,16 @@ Sobem três containers: `pokedex-app` (API), `pokedex-db` (PostgreSQL) e `pokede
 **4. Acesse a documentação**
 
 [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### Imagem publicada
+
+A cada push na `main` com os testes passando, o GitHub Actions publica a imagem da API no GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/ilucasoliveira/pokedex-api:latest
+```
+
+Cada versão também recebe uma tag com o hash do commit (`ghcr.io/ilucasoliveira/pokedex-api:<sha>`), para dar para rodar exatamente uma versão anterior. A imagem contém só a API: o banco e o Redis continuam vindo do `docker-compose.yml`.
 
 ## Como rodar localmente (sem Docker para a API)
 
@@ -241,6 +253,18 @@ Cobertura por área:
 | `test_pokemon.py` | CRUD e importação: sucesso, 404, 409, 422, 503, paginação, ordenação, reaproveitamento de tipos  |
 | `test_auth.py`    | Registro, login, rotas protegidas sem token, com token falso e com token vencido, rotas públicas |
 | `test_health.py`  | Health check                                                                                     |
+
+## CI/CD
+
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub Actions em três etapas, cada uma só começando se a anterior passar:
+
+| Job               | Quando roda                        | O que faz                                                                                 |
+| ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 32 testes                      |
+| **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
+| **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
+
+Pull requests passam pelos testes e pelo build, mas não publicam imagem.
 
 ## Decisões técnicas
 
