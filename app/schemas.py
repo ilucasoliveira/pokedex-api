@@ -60,3 +60,32 @@ class PokemonResponse(BaseModel):
     @classmethod
     def extrai_nomes_dos_tipos(cls, value):
         return [i.name if isinstance(i, Type) else i for i in value]
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=50, description="Username")
+    password: str = Field(min_length=8, max_length=72, description="Password")
+
+    @field_validator("username", mode="after")
+    @classmethod
+    def padronizar_username(cls, value):
+        return value.lower()
+
+    @field_validator("password", mode="after")
+    @classmethod
+    def validar_tamanho_em_bytes(cls, value):
+        if len(value.encode()) > 72:
+            raise ValueError("Password must be at most 72 bytes.")
+        return value
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

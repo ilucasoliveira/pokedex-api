@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models import Pokemon, Type
 from app.schemas import PokemonCreate, PokemonUpdate, PokemonResponse
 from app.cache import get_cache, set_cache, delete_cache_by_pattern, delete_cache
+from app.security import get_current_user
 
 router = APIRouter(prefix="/pokemon", tags=["pokemon"])
 
@@ -42,12 +43,22 @@ async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     return new_pokemon
 
 
-@router.post("", status_code=201, response_model=PokemonResponse)
+@router.post(
+    "",
+    status_code=201,
+    response_model=PokemonResponse,
+    dependencies=[Depends(get_current_user)],
+)
 async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)):
     return await save_pokemon(pokemon, db)
 
 
-@router.post("/import/{name}", status_code=201, response_model=PokemonResponse)
+@router.post(
+    "/import/{name}",
+    status_code=201,
+    response_model=PokemonResponse,
+    dependencies=[Depends(get_current_user)],
+)
 async def import_pokemon(name: str, db: AsyncSession = Depends(get_db)):
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -130,7 +141,12 @@ async def read_pokemons(
     return response
 
 
-@router.patch("/{pokemon_id}", status_code=200, response_model=PokemonResponse)
+@router.patch(
+    "/{pokemon_id}",
+    status_code=200,
+    response_model=PokemonResponse,
+    dependencies=[Depends(get_current_user)],
+)
 async def update_pokemon(
     pokemon_id: int, new_data: PokemonUpdate, db: AsyncSession = Depends(get_db)
 ):
@@ -181,7 +197,9 @@ async def update_pokemon(
     return pokemon
 
 
-@router.delete("/{pokemon_id}", status_code=204)
+@router.delete(
+    "/{pokemon_id}", status_code=204, dependencies=[Depends(get_current_user)]
+)
 async def delete_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Pokemon).where(Pokemon.id == pokemon_id))
     pokemon = result.scalars().first()

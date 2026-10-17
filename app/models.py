@@ -30,3 +30,10 @@ class PokemonType(Base):
     type_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("type.id"), primary_key=True
     )
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
