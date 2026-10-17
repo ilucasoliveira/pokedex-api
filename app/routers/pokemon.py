@@ -1,3 +1,4 @@
+import json
 import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import Pokemon, Type
 from app.schemas import PokemonCreate, PokemonUpdate, PokemonResponse
+from app.cache import get_cache, set_cache, delete_cache_by_pattern, delete_cache
 
 router = APIRouter(prefix="/pokemon", tags=["pokemon"])
 
@@ -36,6 +38,7 @@ async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     db.add(new_pokemon)
     await db.commit()
 
+    await delete_cache_by_pattern("pokemon:list:*")
     return new_pokemon
 
 
@@ -78,6 +81,12 @@ async def import_pokemon(name: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/{pokemon_id}", status_code=200, response_model=PokemonResponse)
 async def read_one_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
+    cache_key = f"pokemon:{pokemon_id}"
+    cached_pokemon = await get_cache(cache_key)
+
+    if cached_pokemon:
+        return PokemonResponse.model_validate_json(cached_pokemon)
+
     result = await db.execute(
         select(Pokemon)
         .where(Pokemon.id == pokemon_id)
@@ -88,7 +97,10 @@ async def read_one_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
     if not pokemon:
         raise HTTPException(status_code=404, detail="Pokémon not found")
 
-    return pokemon
+    response = PokemonResponse.model_validate(pokemon)
+    await set_cache(cache_key, response.model_dump_json(), ttl=3600)
+
+    return response
 
 
 @router.get("", status_code=200, response_model=list[PokemonResponse])
@@ -97,6 +109,12 @@ async def read_pokemons(
     limit: int = Query(default=10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"pokemon:list:page={page}:limit={limit}"
+    cached_pokemons = await get_cache(cache_key)
+
+    if cached_pokemons:
+        return json.loads(cached_pokemons)
+
     result = await db.execute(
         select(Pokemon)
         .options(selectinload(Pokemon.types))
@@ -104,8 +122,12 @@ async def read_pokemons(
         .offset((page - 1) * limit)
         .limit(limit)
     )
+    pokemons = result.scalars().all()
 
-    return result.scalars().all()
+    response = [PokemonResponse.model_validate(p).model_dump() for p in pokemons]
+    await set_cache(cache_key, json.dumps(response), ttl=3600)
+
+    return response
 
 
 @router.patch("/{pokemon_id}", status_code=200, response_model=PokemonResponse)
@@ -152,6 +174,10 @@ async def update_pokemon(
         pokemon.types = list_types
 
     await db.commit()
+
+    cache_key = f"pokemon:{pokemon_id}"
+    await delete_cache(cache_key)
+    await delete_cache_by_pattern("pokemon:list:*")
     return pokemon
 
 
@@ -165,3 +191,7 @@ async def delete_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
 
     await db.delete(pokemon)
     await db.commit()
+
+    cache_key = f"pokemon:{pokemon_id}"
+    await delete_cache(cache_key)
+    await delete_cache_by_pattern("pokemon:list:*")

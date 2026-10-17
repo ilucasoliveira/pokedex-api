@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
+from app.models import Type
+
 
 class PokemonCreate(BaseModel):
     id: int = Field(ge=1, description="pokemon ID")
@@ -57,5 +59,4 @@ class PokemonResponse(BaseModel):
     @field_validator("types", mode="before")
     @classmethod
     def extrai_nomes_dos_tipos(cls, value):
-        value = [i.name for i in value]
-        return value
+        return [i.name if isinstance(i, Type) else i for i in value]
