@@ -1,18 +1,29 @@
 import json
 import httpx
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Pokemon, Type
-from app.schemas import PokemonCreate, PokemonUpdate, PokemonResponse
+from app.schemas import ErrorResponse, PokemonCreate, PokemonUpdate, PokemonResponse
 from app.cache import get_cache, set_cache, delete_cache_by_pattern, delete_cache
 from app.security import get_current_user
 
 router = APIRouter(prefix="/pokemon", tags=["pokemon"])
+
+UNAUTHORIZED = {
+    401: {"model": ErrorResponse, "description": "Missing, invalid or expired token."}
+}
+NOT_FOUND = {404: {"model": ErrorResponse, "description": "Pokémon not found."}}
+CONFLICT = {
+    409: {
+        "model": ErrorResponse,
+        "description": "A Pokémon with this id or name already exists.",
+    }
+}
 
 
 async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
@@ -48,6 +59,13 @@ async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     status_code=201,
     response_model=PokemonResponse,
     dependencies=[Depends(get_current_user)],
+    summary="Create a Pokémon",
+    description=(
+        "Creates a Pokémon with the given Pokédex number, name and types. "
+        "Name and types are stored in lowercase. Types that do not exist yet are "
+        "created; existing ones are reused. **Requires authentication.**"
+    ),
+    responses={**UNAUTHORIZED, **CONFLICT},
 )
 async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)):
     return await save_pokemon(pokemon, db)
@@ -58,8 +76,33 @@ async def create_pokemon(pokemon: PokemonCreate, db: AsyncSession = Depends(get_
     status_code=201,
     response_model=PokemonResponse,
     dependencies=[Depends(get_current_user)],
+    summary="Import a Pokémon from the PokéAPI",
+    description=(
+        "Fetches a Pokémon from the public [PokéAPI](https://pokeapi.co/) by name "
+        "or Pokédex number and saves it with the same rules as the create endpoint. "
+        "The request to the PokéAPI times out after 10 seconds. "
+        "**Requires authentication.**"
+    ),
+    responses={
+        **UNAUTHORIZED,
+        404: {
+            "model": ErrorResponse,
+            "description": "Pokémon not found in the PokéAPI.",
+        },
+        **CONFLICT,
+        503: {
+            "model": ErrorResponse,
+            "description": "PokéAPI is unavailable or returned an unexpected error.",
+        },
+    },
 )
-async def import_pokemon(name: str, db: AsyncSession = Depends(get_db)):
+async def import_pokemon(
+    name: str = Path(
+        description="Pokémon name or Pokédex number in the PokéAPI.",
+        examples=["pikachu"],
+    ),
+    db: AsyncSession = Depends(get_db),
+):
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
@@ -90,8 +133,21 @@ async def import_pokemon(name: str, db: AsyncSession = Depends(get_db)):
     return await save_pokemon(pokemon_data, db)
 
 
-@router.get("/{pokemon_id}", status_code=200, response_model=PokemonResponse)
-async def read_one_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
+@router.get(
+    "/{pokemon_id}",
+    status_code=200,
+    response_model=PokemonResponse,
+    summary="Get a Pokémon by Pokédex number",
+    description=(
+        "Returns a single Pokémon. Public endpoint. "
+        "Responses are cached in Redis for up to 1 hour and invalidated on every change."
+    ),
+    responses=NOT_FOUND,
+)
+async def read_one_pokemon(
+    pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
+    db: AsyncSession = Depends(get_db),
+):
     cache_key = f"pokemon:{pokemon_id}"
     cached_pokemon = await get_cache(cache_key)
 
@@ -114,10 +170,21 @@ async def read_one_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
     return response
 
 
-@router.get("", status_code=200, response_model=list[PokemonResponse])
+@router.get(
+    "",
+    status_code=200,
+    response_model=list[PokemonResponse],
+    summary="List Pokémon",
+    description=(
+        "Returns a paginated list of Pokémon ordered by Pokédex number. "
+        "Public endpoint. Each page is cached in Redis for up to 1 hour."
+    ),
+)
 async def read_pokemons(
-    page: int = Query(default=1, ge=1),
-    limit: int = Query(default=10, ge=1, le=100),
+    page: int = Query(default=1, ge=1, description="Page number, starting at 1."),
+    limit: int = Query(
+        default=10, ge=1, le=100, description="Items per page (1 to 100)."
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     cache_key = f"pokemon:list:page={page}:limit={limit}"
@@ -146,9 +213,25 @@ async def read_pokemons(
     status_code=200,
     response_model=PokemonResponse,
     dependencies=[Depends(get_current_user)],
+    summary="Update a Pokémon",
+    description=(
+        "Partially updates a Pokémon: only the fields sent are changed. "
+        "Sending `types` replaces the whole list. The Pokédex number cannot be changed. "
+        "**Requires authentication.**"
+    ),
+    responses={
+        **UNAUTHORIZED,
+        **NOT_FOUND,
+        409: {
+            "model": ErrorResponse,
+            "description": "Another Pokémon already uses this name.",
+        },
+    },
 )
 async def update_pokemon(
-    pokemon_id: int, new_data: PokemonUpdate, db: AsyncSession = Depends(get_db)
+    new_data: PokemonUpdate,
+    pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
+    db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(Pokemon)
@@ -198,9 +281,20 @@ async def update_pokemon(
 
 
 @router.delete(
-    "/{pokemon_id}", status_code=204, dependencies=[Depends(get_current_user)]
+    "/{pokemon_id}",
+    status_code=204,
+    dependencies=[Depends(get_current_user)],
+    summary="Delete a Pokémon",
+    description=(
+        "Deletes a Pokémon and its links to types. The types themselves are kept, "
+        "since other Pokémon may use them. **Requires authentication.**"
+    ),
+    responses={**UNAUTHORIZED, **NOT_FOUND},
 )
-async def delete_pokemon(pokemon_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_pokemon(
+    pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(Pokemon).where(Pokemon.id == pokemon_id))
     pokemon = result.scalars().first()
 
