@@ -2,19 +2,23 @@
 
 ![CI](https://github.com/ilucasoliveira/pokedex-api/actions/workflows/ci.yml/badge.svg)
 
+**API no ar:** [https://pokedex-api-h46x.onrender.com/docs](https://pokedex-api-h46x.onrender.com/docs)
+
 API REST inspirada na [PokéAPI](https://pokeapi.co/) para cadastrar, consultar, atualizar e excluir pokémons. Projeto final do módulo de Python para back-end do curso Full Stack Python da EBAC.
 
 Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em cache no Redis e protege as rotas de escrita com autenticação JWT.
 
 ## Funcionalidades
 
-- **CRUD completo** de pokémons, com paginação e ordenação pelo número da Pokédex
+- **CRUD completo** de pokémons, com paginação por `limit`/`offset` (total, próxima e página anterior na resposta) e ordenação pelo número da Pokédex
 - **Tipos com relacionamento N:N**: um pokémon tem um ou dois tipos, e cada tipo é cadastrado uma vez só e reaproveitado
-- **Importação da PokéAPI** pelo nome ou número (`POST /pokemon/import/pikachu`)
+- **Importação da PokéAPI** pelo nome ou número (`POST /pokemons/import/pikachu`)
 - **Cache com Redis** nas leituras, invalidado a cada alteração. Se o Redis cair, a API continua funcionando direto pelo banco
 - **Autenticação JWT**: leitura pública, criação/importação/edição/exclusão exigem token
 - **Documentação interativa** em `/docs` (Swagger) com descrições, exemplos e códigos de erro
-- **32 testes automatizados** cobrindo sucesso e erro de cada endpoint
+- **34 testes automatizados** cobrindo sucesso e erro de cada endpoint
+- **Type hints** em todas as funções, conferidas com mypy
+- **Deploy automático** no Render pelo GitHub Actions, só depois dos testes passarem
 
 ## Stack
 
@@ -50,8 +54,11 @@ projeto_final_ebac/
 │   ├── test_auth.py
 │   ├── test_health.py
 │   └── test_pokemon.py
+├── .github/workflows/
+│   └── ci.yml             # testes, build, publicação da imagem e deploy
 ├── Dockerfile
 ├── docker-compose.yml
+├── render.yaml            # Blueprint do Render (API, PostgreSQL e Redis)
 ├── pyproject.toml
 ├── poetry.lock
 └── .env.example
@@ -140,17 +147,18 @@ Nesse modo o `.env` precisa apontar para `localhost` (banco na porta `5433`, Red
 
 ## Variáveis de ambiente
 
-| Variável                      | Exemplo                                                                       | Descrição                                       |
-| ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
-| `POSTGRES_USER`               | `seu_usuario`                                                                 | Usuário do PostgreSQL                           |
-| `POSTGRES_PASSWORD`           | `sua_senha`                                                                   | Senha do PostgreSQL                             |
-| `POSTGRES_DB`                 | `register_pokemons`                                                           | Nome do banco                                   |
-| `DATABASE_URL`                | `postgresql+asyncpg://seu_usuario:sua_senha@localhost:5433/register_pokemons` | URL de conexão usada pela API fora do Docker    |
-| `REDIS_HOST`                  | `localhost`                                                                   | Host do Redis fora do Docker                    |
-| `REDIS_PORT`                  | `6379`                                                                        | Porta do Redis                                  |
-| `SECRET_KEY`                  | (64 caracteres hexadecimais)                                                  | Chave que assina os tokens JWT. Nunca versionar |
-| `JWT_ALGORITHM`               | `HS256`                                                                       | Algoritmo de assinatura do JWT                  |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                                                          | Validade do token, em minutos                   |
+| Variável                      | Exemplo                                                                       | Descrição                                                                               |
+| ----------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `POSTGRES_USER`               | `seu_usuario`                                                                 | Usuário do PostgreSQL                                                                   |
+| `POSTGRES_PASSWORD`           | `sua_senha`                                                                   | Senha do PostgreSQL                                                                     |
+| `POSTGRES_DB`                 | `register_pokemons`                                                           | Nome do banco                                                                           |
+| `DATABASE_URL`                | `postgresql+asyncpg://seu_usuario:sua_senha@localhost:5433/register_pokemons` | URL de conexão usada pela API fora do Docker                                            |
+| `REDIS_HOST`                  | `localhost`                                                                   | Host do Redis fora do Docker                                                            |
+| `REDIS_PORT`                  | `6379`                                                                        | Porta do Redis                                                                          |
+| `REDIS_URL`                   | `redis://host:6379`                                                           | Opcional. URL única do Redis, usada em produção no lugar de `REDIS_HOST` e `REDIS_PORT` |
+| `SECRET_KEY`                  | (64 caracteres hexadecimais)                                                  | Chave que assina os tokens JWT. Nunca versionar                                         |
+| `JWT_ALGORITHM`               | `HS256`                                                                       | Algoritmo de assinatura do JWT                                                          |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                                                          | Validade do token, em minutos                                                           |
 
 Nenhuma credencial fica no código: tudo vem do `.env`, que está no `.gitignore`.
 
@@ -177,25 +185,25 @@ curl -X POST http://localhost:8000/auth/token \
   -d "username=ash&password=pikachu123"
 
 # usar o token
-curl -X POST http://localhost:8000/pokemon/import/pikachu \
+curl -X POST http://localhost:8000/pokemons/import/pikachu \
   -H "Authorization: Bearer <access_token>"
 ```
 
 ## Endpoints
 
-| Método   | Rota                     | Auth | Descrição                                                     |
-| -------- | ------------------------ | ---- | ------------------------------------------------------------- |
-| `GET`    | `/health`                |      | Verifica se a API está no ar                                  |
-| `POST`   | `/auth/register`         |      | Cria um usuário                                               |
-| `POST`   | `/auth/token`            |      | Faz login e devolve o JWT                                     |
-| `GET`    | `/pokemon`               |      | Lista paginada (`page`, `limit` até 100), ordenada por número |
-| `GET`    | `/pokemon/{pokemon_id}`  |      | Busca um pokémon pelo número                                  |
-| `POST`   | `/pokemon`               | 🔒   | Cadastra um pokémon                                           |
-| `POST`   | `/pokemon/import/{name}` | 🔒   | Importa da PokéAPI pelo nome ou número                        |
-| `PATCH`  | `/pokemon/{pokemon_id}`  | 🔒   | Atualiza só os campos enviados                                |
-| `DELETE` | `/pokemon/{pokemon_id}`  | 🔒   | Exclui um pokémon                                             |
+| Método   | Rota                      | Auth | Descrição                                                       |
+| -------- | ------------------------- | ---- | --------------------------------------------------------------- |
+| `GET`    | `/health`                 |      | Verifica se a API está no ar                                    |
+| `POST`   | `/auth/register`          |      | Cria um usuário                                                 |
+| `POST`   | `/auth/token`             |      | Faz login e devolve o JWT                                       |
+| `GET`    | `/pokemons`               |      | Lista paginada (`limit` até 100, `offset`), ordenada por número |
+| `GET`    | `/pokemons/{pokemon_id}`  |      | Busca um pokémon pelo número                                    |
+| `POST`   | `/pokemons`               | 🔒   | Cadastra um pokémon                                             |
+| `POST`   | `/pokemons/import/{name}` | 🔒   | Importa da PokéAPI pelo nome ou número                          |
+| `PATCH`  | `/pokemons/{pokemon_id}`  | 🔒   | Atualiza só os campos enviados                                  |
+| `DELETE` | `/pokemons/{pokemon_id}`  | 🔒   | Exclui um pokémon                                               |
 
-**Exemplo de corpo para `POST /pokemon`:**
+**Exemplo de corpo para `POST /pokemons`:**
 
 ```json
 {
@@ -208,16 +216,50 @@ curl -X POST http://localhost:8000/pokemon/import/pikachu \
 }
 ```
 
+### Paginação
+
+`GET /pokemons` aceita `limit` (padrão 20, máximo 100) e `offset` (padrão 0), no mesmo formato da PokéAPI. A resposta traz os pokémons em `data` e as informações da página em `pagination`:
+
+```
+GET /pokemons?limit=20&offset=0
+```
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "bulbasaur",
+      "height": 7,
+      "weight": 69,
+      "types": ["grass", "poison"],
+      "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
+    }
+  ],
+  "pagination": {
+    "total": 151,
+    "limit": 20,
+    "offset": 0,
+    "next": "/pokemons?limit=20&offset=20",
+    "previous": null
+  }
+}
+```
+
+- `total`: quantos pokémons existem no banco
+- `next`: caminho da próxima página, ou `null` na última
+- `previous`: caminho da página anterior, ou `null` na primeira
+
 **Códigos de resposta usados:**
 
-| Código                | Quando                                                           |
-| --------------------- | ---------------------------------------------------------------- |
-| `200` / `201` / `204` | Sucesso                                                          |
-| `401`                 | Token ausente, inválido ou vencido; login incorreto              |
-| `404`                 | Pokémon não encontrado (no banco ou na PokéAPI)                  |
-| `409`                 | Já existe pokémon com esse número ou nome; username já usado     |
-| `422`                 | Dados inválidos (ex.: número 0, mais de dois tipos, senha curta) |
-| `503`                 | PokéAPI fora do ar ou com erro                                   |
+| Código                | Quando                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `200` / `201` / `204` | Sucesso                                                                             |
+| `401`                 | Token ausente, inválido ou vencido; login incorreto                                 |
+| `404`                 | Pokémon não encontrado (no banco ou na PokéAPI)                                     |
+| `409`                 | Já existe pokémon com esse número ou nome; username já usado                        |
+| `422`                 | Dados inválidos (ex.: número 0, mais de dois tipos, senha curta, `offset` negativo) |
+| `503`                 | PokéAPI fora do ar ou com erro                                                      |
 
 ## Cache
 
@@ -248,31 +290,51 @@ Os testes não dependem de nenhum serviço externo:
 
 Cobertura por área:
 
-| Arquivo           | O que testa                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| `test_pokemon.py` | CRUD e importação: sucesso, 404, 409, 422, 503, paginação, ordenação, reaproveitamento de tipos  |
-| `test_auth.py`    | Registro, login, rotas protegidas sem token, com token falso e com token vencido, rotas públicas |
-| `test_health.py`  | Health check                                                                                     |
+| Arquivo           | O que testa                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_pokemon.py` | CRUD e importação: sucesso, 404, 409, 422, 503, paginação (`data`, `total`, `next`, `previous`), ordenação, reaproveitamento de tipos |
+| `test_auth.py`    | Registro, login, rotas protegidas sem token, com token falso e com token vencido, rotas públicas                                      |
+| `test_health.py`  | Health check                                                                                                                          |
+
+## Deploy
+
+A API está publicada no [Render](https://render.com/) (plano gratuito):
+
+- **Documentação:** [https://pokedex-api-h46x.onrender.com/docs](https://pokedex-api-h46x.onrender.com/docs)
+- **Health check:** [https://pokedex-api-h46x.onrender.com/health](https://pokedex-api-h46x.onrender.com/health)
+
+A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório.
+
+O deploy automático do Render fica **desligado** de propósito: quem dispara o deploy é o GitHub Actions, e só depois que os testes, o build e a publicação da imagem passam.
+
+**Para reproduzir em outra conta do Render:**
+
+1. No Render, **New > Blueprint** e selecione este repositório. O Render lê o `render.yaml` e cria os três serviços
+2. No serviço `pokedex-api`, **Settings > Deploy Hook**, copie a URL
+3. No GitHub, **Settings > Secrets and variables > Actions > New repository secret**, com o nome `RENDER_DEPLOY_HOOK_URL` e a URL copiada como valor
 
 ## CI/CD
 
-O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub Actions em três etapas, cada uma só começando se a anterior passar:
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub Actions em quatro etapas, cada uma só começando se a anterior passar:
 
 | Job               | Quando roda                        | O que faz                                                                                 |
 | ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 32 testes                      |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 34 testes                      |
 | **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
 | **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
+| **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |
 
-Pull requests passam pelos testes e pelo build, mas não publicam imagem.
+Pull requests passam pelos testes e pelo build, mas não publicam imagem nem fazem deploy.
 
 ## Decisões técnicas
 
 - **SQLAlchemy assíncrono**: as rotas são `async def` e o acesso ao banco também, sem bloquear o servidor durante as consultas. Os tipos são carregados com `selectinload` para evitar consultas extras (problema N+1)
-- **Lógica de criação centralizada**: `POST /pokemon` e a importação passam pela mesma função `save_pokemon`, com as mesmas validações e regras
+- **Lógica de criação centralizada**: `POST /pokemons` e a importação passam pela mesma função `save_pokemon`, com as mesmas validações e regras
 - **Leitura pública, escrita protegida**: mesmo modelo da PokéAPI real
 - **Usuário inexistente e senha errada devolvem a mesma mensagem**, para não revelar quais usernames existem
 - **Tabelas criadas no startup** com `create_all` dentro do `lifespan`
+- **Paginação por `limit`/`offset`**, igual à PokéAPI, com os caminhos de próxima e anterior já prontos na resposta
+- **Configuração por URL em produção**: a API aceita `DATABASE_URL` no formato `postgres://` entregue pelos serviços de hospedagem (converte para o driver `asyncpg`) e `REDIS_URL` no lugar de host e porta
 
 ## Limitações conhecidas
 
@@ -280,6 +342,7 @@ Pull requests passam pelos testes e pelo build, mas não publicam imagem.
 - **Cache durante queda do Redis**: se uma alteração acontecer com o Redis fora do ar, a invalidação falha e o dado antigo pode ser servido do cache até o TTL (1 hora) vencer depois que o Redis voltar
 - **Avisos no log com Redis fora**: aparecem mensagens `Future exception was never retrieved` com `gaierror`. São avisos da resolução de nome cancelada pelo timeout, não afetam as respostas
 - **Registro aberto e sem refresh token**: qualquer pessoa cria conta, e o token expira sem renovação automática
+- **Plano gratuito do Render**: a API "dorme" após 15 minutos sem acesso, e a primeira requisição depois disso demora uns 30 a 60 segundos. O PostgreSQL gratuito do Render expira depois de 30 dias e precisa ser recriado
 
 ## Histórico de desenvolvimento
 

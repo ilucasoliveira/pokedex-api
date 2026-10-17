@@ -80,7 +80,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://pokedex-api.onrender.com/docs
+      url: https://pokedex-api-h46x.onrender.com/docs
 
     steps:
       - name: Trigger Render deploy
