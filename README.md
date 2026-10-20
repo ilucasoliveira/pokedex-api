@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/ilucasoliveira/pokedex-api/actions/workflows/ci.yml/badge.svg)
 
-**API no ar:** [https://pokedex-api-h46x.onrender.com/docs](https://pokedex-api-h46x.onrender.com/docs)
+**API no ar:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
 
 API REST inspirada na [PokéAPI](https://pokeapi.co/) para cadastrar, consultar, atualizar e excluir pokémons. Projeto final do módulo de Python para back-end do curso Full Stack Python da EBAC.
 
@@ -306,8 +306,8 @@ Cobertura por área:
 
 A API está publicada no [Render](https://render.com/) (plano gratuito):
 
-- **Documentação:** [https://pokedex-api-h46x.onrender.com/docs](https://pokedex-api-h46x.onrender.com/docs)
-- **Health check:** [https://pokedex-api-h46x.onrender.com/health](https://pokedex-api-h46x.onrender.com/health)
+- **Documentação:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
+- **Health check:** [https://pokedex-api-cb8d.onrender.com/health](https://pokedex-api-cb8d.onrender.com/health)
 
 A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `backend/Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório.
 
