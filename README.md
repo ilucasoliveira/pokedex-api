@@ -37,31 +37,35 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 
 ## Estrutura do projeto
 
+O repositório tem duas partes: a API em `backend/` e a interface web em `frontend/` (em construção).
+
 ```
-projeto_final_ebac/
-├── app/
-│   ├── main.py            # cria o app, lifespan e plugs dos routers
-│   ├── database.py        # engine e sessão assíncrona do SQLAlchemy
-│   ├── models.py          # tabelas: pokemon, type, pokemon_type, users
-│   ├── schemas.py         # schemas Pydantic de entrada e saída
-│   ├── security.py        # hash de senha, geração e validação do JWT
-│   ├── cache.py           # cliente Redis e funções de cache tolerantes a falha
-│   └── routers/
-│       ├── auth.py        # /auth/register e /auth/token
-│       └── pokemon.py     # CRUD e importação de pokémons
-├── tests/
-│   ├── conftest.py        # fixtures: banco em memória, clientes, mocks
-│   ├── test_auth.py
-│   ├── test_health.py
-│   └── test_pokemon.py
+pokedex-api/
+├── backend/
+│   ├── app/
+│   │   ├── main.py            # cria o app, lifespan e plugs dos routers
+│   │   ├── database.py        # engine e sessão assíncrona do SQLAlchemy
+│   │   ├── models.py          # tabelas: pokemon, type, pokemon_type, users
+│   │   ├── schemas.py         # schemas Pydantic de entrada e saída
+│   │   ├── security.py        # hash de senha, geração e validação do JWT
+│   │   ├── cache.py           # cliente Redis e funções de cache tolerantes a falha
+│   │   └── routers/
+│   │       ├── auth.py        # /auth/register e /auth/token
+│   │       └── pokemon.py     # CRUD e importação de pokémons
+│   ├── tests/
+│   │   ├── conftest.py        # fixtures: banco em memória, clientes, mocks
+│   │   ├── test_auth.py
+│   │   ├── test_health.py
+│   │   └── test_pokemon.py
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   └── poetry.lock
+├── frontend/                  # interface web (em construção)
 ├── .github/workflows/
-│   └── ci.yml             # testes, build, publicação da imagem e deploy
-├── Dockerfile
-├── docker-compose.yml
-├── render.yaml            # Blueprint do Render (API, PostgreSQL e Redis)
-├── pyproject.toml
-├── poetry.lock
-└── .env.example
+│   └── ci.yml                 # testes, build, publicação da imagem e deploy
+├── docker-compose.yml         # PostgreSQL, Redis e API
+├── render.yaml                # Blueprint do Render (API, PostgreSQL e Redis)
+└── .env.example               # usado pelo docker-compose e pela API
 ```
 
 ## Modelo de dados
@@ -95,8 +99,8 @@ Pré-requisito: Docker com Docker Compose.
 **1. Clone o repositório e entre na pasta**
 
 ```bash
-git clone <url-do-repositorio>
-cd projeto_final_ebac
+git clone https://github.com/ilucasoliveira/pokedex-api.git
+cd pokedex-api
 ```
 
 **2. Crie o `.env` a partir do exemplo**
@@ -135,15 +139,16 @@ Cada versão também recebe uma tag com o hash do commit (`ghcr.io/ilucasoliveir
 
 ## Como rodar localmente (sem Docker para a API)
 
-Útil para desenvolver com reload. O banco e o Redis continuam no Docker.
+Útil para desenvolver com reload. O banco e o Redis continuam no Docker. O `docker compose` roda na raiz; o Poetry, dentro de `backend/`.
 
 ```bash
-poetry install
 docker compose up -d db redis
+cd backend
+poetry install
 poetry run fastapi dev app/main.py
 ```
 
-Nesse modo o `.env` precisa apontar para `localhost` (banco na porta `5433`, Redis na `6379`). Quando a API roda dentro do Docker, o `docker-compose.yml` sobrescreve esses endereços com os nomes dos serviços (`db` e `redis`).
+O `.env` continua na raiz do repositório: a API o encontra subindo a partir de `backend/`. Nesse modo o `.env` precisa apontar para `localhost` (banco na porta `5433`, Redis na `6379`). Quando a API roda dentro do Docker, o `docker-compose.yml` sobrescreve esses endereços com os nomes dos serviços (`db` e `redis`).
 
 ## Variáveis de ambiente
 
@@ -273,6 +278,7 @@ Toda operação de cache tem limite de 1 segundo e captura falhas de conexão. S
 ## Testes
 
 ```bash
+cd backend
 poetry run pytest -v
 ```
 
@@ -303,7 +309,7 @@ A API está publicada no [Render](https://render.com/) (plano gratuito):
 - **Documentação:** [https://pokedex-api-h46x.onrender.com/docs](https://pokedex-api-h46x.onrender.com/docs)
 - **Health check:** [https://pokedex-api-h46x.onrender.com/health](https://pokedex-api-h46x.onrender.com/health)
 
-A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório.
+A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `backend/Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório.
 
 O deploy automático do Render fica **desligado** de propósito: quem dispara o deploy é o GitHub Actions, e só depois que os testes, o build e a publicação da imagem passam.
 

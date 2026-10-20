@@ -6,6 +6,9 @@ services:
   - type: web
     name: pokedex-api
     runtime: docker
+    # Caminhos relativos à raiz do repositório: a API mora em backend/.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     plan: free
     region: oregon
     healthCheckPath: /health

@@ -1,5 +1,5 @@
 [project]
-name = "projeto-final-ebac"
+name = "pokedex-api"
 version = "0.1.0"
 description = "criando uma API inspirada na PokéAPI utilizando CRUD, FastAPI, SQLAlchemy e Docker."
 authors = [

@@ -28,16 +28,19 @@ services:
       retries: 5
 
   app:
-    build: .
+    build: ./backend
     container_name: pokedex-app
     ports:
       - "8000:8000"
+    # O .env fica na raiz do repositório, fora da pasta montada em /app.
+    # As variáveis de "environment" têm prioridade sobre as do env_file.
+    env_file: .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
-      - .:/app
+      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy
