@@ -6,7 +6,7 @@
 
 API REST inspirada na [PokéAPI](https://pokeapi.co/) para cadastrar, consultar, atualizar e excluir pokémons. Projeto final do módulo de Python para back-end do curso Full Stack Python da EBAC.
 
-Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em cache no Redis e protege as rotas de escrita com autenticação JWT.
+Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em cache no Redis e protege as rotas de escrita com autenticação JWT. Ela alimenta a **Rota151**, a interface web em [`frontend/`](frontend/README.md).
 
 ## Funcionalidades
 
@@ -44,7 +44,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 
 ## Estrutura do projeto
 
-O repositório tem duas partes: a API em `backend/` e a interface web em `frontend/` (em construção).
+O repositório tem duas partes: a API em `backend/` e a interface web **Rota151** em `frontend/` (React + TypeScript + Vite), documentada no [README próprio](frontend/README.md).
 
 ```
 pokedex-api/
@@ -78,7 +78,7 @@ pokedex-api/
 │   ├── Dockerfile
 │   ├── pyproject.toml
 │   └── poetry.lock
-├── frontend/                  # interface web (em construção)
+├── frontend/                  # interface web Rota151 (React + TypeScript + Vite)
 ├── .github/workflows/
 │   └── ci.yml                 # testes, build, publicação da imagem e deploy
 ├── docker-compose.yml         # PostgreSQL, Redis e API
@@ -501,6 +501,8 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub
 | **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |
 
 Pull requests passam pelos testes e pelo build, mas não publicam imagem nem fazem deploy.
+
+Em paralelo, o job **Frontend** instala as dependências de `frontend/` com Node 24 e roda lint, testes e build. Ele não bloqueia o deploy da API.
 
 ## Decisões técnicas
 

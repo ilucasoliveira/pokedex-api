@@ -1,0 +1,50 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.symbol {
+  width: 30px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-forest);
+}
+
+.number {
+  color: var(--color-red);
+}
+
+.tagline {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-earth);
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .symbol {
+    width: 34px;
+    height: 41px;
+  }
+
+  .name {
+    font-size: 32px;
+  }
+}

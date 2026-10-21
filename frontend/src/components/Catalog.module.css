@@ -1,0 +1,111 @@
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* Mobile: os dois filtros dividem a linha; "Limpar filtros" vai para baixo. */
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  align-items: end;
+}
+
+.clear {
+  grid-column: 1 / -1;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.title {
+  font-size: var(--font-size-section-mobile);
+  font-weight: 700;
+  outline: none;
+}
+
+.count {
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity var(--transition-normal);
+}
+
+/* Enquanto a próxima página carrega, a atual fica esmaecida. */
+.stale {
+  opacity: 0.6;
+}
+
+@media (min-width: 360px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-16);
+  }
+}
+
+@media (min-width: 1024px) {
+  .controls {
+    flex-direction: row;
+    align-items: end;
+    padding: var(--space-20);
+  }
+
+  .controls > form {
+    flex: 1 1 auto;
+  }
+
+  .filters {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
+  .filters > div {
+    width: 220px;
+  }
+
+  .clear {
+    flex-shrink: 0;
+  }
+
+  .title {
+    font-size: var(--font-size-section-desktop);
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

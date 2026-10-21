@@ -1,0 +1,136 @@
+.empty {
+  color: var(--color-muted-text);
+}
+
+.scroller {
+  overflow-x: auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-small);
+}
+
+.tree,
+.next {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Etapa à esquerda, próximas etapas empilhadas à direita. */
+.stage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.next {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.manyBranches {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: var(--space-8) var(--space-4);
+}
+
+.branch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 72px;
+  flex-shrink: 0;
+  color: var(--color-earth);
+  text-align: center;
+}
+
+.condition {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-muted-text);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 76px;
+  min-height: 96px;
+  flex-shrink: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-alt);
+  color: var(--color-ink);
+  text-decoration: none;
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+a.cell:hover {
+  border-color: var(--color-forest);
+}
+
+.current {
+  border: 2px solid var(--color-mustard);
+  background: #fdf1d3;
+}
+
+.cell img,
+.cell > div {
+  width: 56px !important;
+  height: 56px !important;
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.number {
+  font-size: 11px;
+  color: var(--color-muted-text);
+}
+
+@media (min-width: 640px) {
+  .connector {
+    width: 96px;
+  }
+
+  .condition {
+    font-size: 12px;
+  }
+
+  .cell {
+    width: 88px;
+    min-height: 108px;
+  }
+
+  .manyBranches {
+    grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  }
+
+  .cell img,
+  .cell > div {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .name {
+    font-size: 13px;
+  }
+}

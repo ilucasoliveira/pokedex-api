@@ -1,0 +1,28 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  max-width: 760px;
+  padding-top: var(--space-32);
+}
+
+.title {
+  font-size: var(--font-size-section-mobile);
+  font-weight: 700;
+}
+
+.subtitle {
+  margin-top: var(--space-16);
+  font-size: var(--font-size-subheading-mobile);
+  font-weight: 700;
+}
+
+@media (min-width: 1024px) {
+  .title {
+    font-size: var(--font-size-section-desktop);
+  }
+
+  .subtitle {
+    font-size: var(--font-size-subheading-desktop);
+  }
+}

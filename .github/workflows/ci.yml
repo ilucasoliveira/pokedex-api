@@ -35,6 +35,37 @@ jobs:
       - name: Run tests
         run: poetry run pytest -v
 
+  # Front-end: roda em paralelo aos testes da API e não bloqueia o deploy dela.
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
   docker:
     name: Docker build
     runs-on: ubuntu-latest

@@ -1,0 +1,93 @@
+/* ROTA151 — Design tokens v1.0 | CSS pixels | Não inclui lógica de aplicação. */
+:root {
+  --font-display: "Rubik", sans-serif;
+  --font-body: "Nunito Sans", sans-serif;
+  --font-pixel: "Press Start 2P", monospace;
+  --color-cream: #FDF6E9;
+  --color-forest: #2E7D32;
+  --color-sky: #6CB6E8;
+  --color-red: #D54E3A;
+  --color-red-accessible: #B63E2C;
+  --color-mustard: #E0A932;
+  --color-earth: #6B4E37;
+  --color-ink: #1F1F1D;
+  --color-white: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #FFF9EF;
+  --color-border: #D8C8AD;
+  --color-muted-text: #5C554C;
+  --color-focus: #0F6FA5;
+  --color-success: #236E3A;
+  --color-error: #A72B25;
+  --color-link: #165A86;
+  --type-normal-bg: #A8A77A; --type-normal-fg: #1F1F1D;
+  --type-fire-bg: #EE8130; --type-fire-fg: #1F1F1D;
+  --type-water-bg: #6390F0; --type-water-fg: #1F1F1D;
+  --type-electric-bg: #F7D02C; --type-electric-fg: #1F1F1D;
+  --type-grass-bg: #7AC74C; --type-grass-fg: #1F1F1D;
+  --type-ice-bg: #96D9D6; --type-ice-fg: #1F1F1D;
+  --type-fighting-bg: #C22E28; --type-fighting-fg: #FFFFFF;
+  --type-poison-bg: #A33EA1; --type-poison-fg: #FFFFFF;
+  --type-ground-bg: #E2BF65; --type-ground-fg: #1F1F1D;
+  --type-flying-bg: #A98FF3; --type-flying-fg: #1F1F1D;
+  --type-psychic-bg: #F95587; --type-psychic-fg: #1F1F1D;
+  --type-bug-bg: #A6B91A; --type-bug-fg: #1F1F1D;
+  --type-rock-bg: #B6A136; --type-rock-fg: #1F1F1D;
+  --type-ghost-bg: #735797; --type-ghost-fg: #FFFFFF;
+  --type-dragon-bg: #6F35FC; --type-dragon-fg: #FFFFFF;
+  --type-dark-bg: #705746; --type-dark-fg: #FFFFFF;
+  --type-steel-bg: #B7B7CE; --type-steel-fg: #1F1F1D;
+  --type-fairy-bg: #D685AD; --type-fairy-fg: #1F1F1D;
+  --space-0: 0px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --radius-small: 8px;
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+  --radius-pill: 999px;
+  --font-size-hero-desktop: 48px;
+  --font-size-hero-mobile: 30px;
+  --font-size-section-desktop: 30px;
+  --font-size-section-mobile: 24px;
+  --font-size-subheading-desktop: 22px;
+  --font-size-subheading-mobile: 20px;
+  --font-size-body: 16px;
+  --font-size-button: 15px;
+  --font-size-label: 14px;
+  --font-size-card-title-desktop: 18px;
+  --font-size-card-title-mobile: 16px;
+  --font-size-pokemon-number-desktop: 14px;
+  --font-size-pokemon-number-mobile: 13px;
+  --font-size-badge: 12px;
+  --font-size-pixel-desktop: 10px;
+  --font-size-pixel-mobile: 8px;
+  --shadow-card: 0 6px 18px rgba(31,31,29,.08);
+  --shadow-panel: 0 12px 28px rgba(31,31,29,.10);
+  --outline-focus: 3px solid var(--color-focus);
+  --transition-fast: 120ms ease;
+  --transition-normal: 180ms ease;
+  --max-container: 1280px;
+  --min-touch-target: 44px;
+}
+
+/* Padrão de acessibilidade: mostrar foco por teclado e respeitar movimento reduzido. */
+:focus-visible { outline: var(--outline-focus); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

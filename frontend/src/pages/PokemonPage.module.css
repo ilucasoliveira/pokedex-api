@@ -1,0 +1,246 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding-top: var(--space-24);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-8);
+  min-height: var(--min-touch-target);
+  font-weight: 700;
+  color: var(--color-ink);
+  text-decoration: none;
+  border-radius: var(--radius-small);
+}
+
+.back:hover {
+  color: var(--color-forest);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-height: 320px;
+  color: var(--color-muted-text);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.artwork {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  border-radius: var(--radius-card);
+  /* Fundo sutil associado ao tipo principal. */
+  background: color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 22%, var(--color-white));
+}
+
+.artwork > * {
+  width: 220px !important;
+  height: 220px !important;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.number {
+  font-size: var(--font-size-pokemon-number-mobile);
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.name {
+  font-size: var(--font-size-hero-mobile);
+  font-weight: 800;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.generation {
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  color: var(--color-earth);
+}
+
+.description {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border-left: 4px solid var(--color-mustard);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  background: var(--color-surface-alt);
+}
+
+.description blockquote {
+  margin: 0;
+}
+
+.descriptionSource {
+  margin-top: var(--space-4);
+  font-size: 12px;
+  color: var(--color-muted-text);
+}
+
+.muted {
+  color: var(--color-muted-text);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-16);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panelTitle {
+  font-size: var(--font-size-subheading-mobile);
+  font-weight: 700;
+}
+
+.subTitle {
+  margin-bottom: var(--space-8);
+  font-family: var(--font-body);
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.measures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  margin: 0;
+}
+
+.measure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-12);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-alt);
+}
+
+.measure dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  color: var(--color-muted-text);
+}
+
+.measure dt svg {
+  color: var(--color-earth);
+}
+
+.measure dd {
+  margin: 0;
+  padding-left: 28px;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.abilities {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pill {
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  font-weight: 600;
+}
+
+.hidden {
+  border-style: dashed;
+  border-color: var(--color-earth);
+}
+
+@media (min-width: 768px) {
+  .hero {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: var(--space-24);
+  }
+
+  .artwork {
+    flex-shrink: 0;
+  }
+
+  .artwork > * {
+    width: 240px !important;
+    height: 240px !important;
+  }
+
+  .name {
+    font-size: var(--font-size-hero-desktop);
+  }
+
+  .number {
+    font-size: var(--font-size-pokemon-number-desktop);
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+
+  .panel {
+    padding: var(--space-24);
+  }
+
+  .panelTitle {
+    font-size: var(--font-size-subheading-desktop);
+  }
+}

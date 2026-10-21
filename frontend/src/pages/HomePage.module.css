@@ -1,0 +1,83 @@
+.hero {
+  margin-bottom: var(--space-32);
+  border-bottom: 1px solid var(--color-border);
+  background:
+    linear-gradient(180deg, rgba(108, 182, 232, 0.18) 0%, rgba(253, 246, 233, 0) 100%);
+}
+
+.heroInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-32);
+  min-height: 210px;
+  padding-block: var(--space-32);
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-16);
+  max-width: 640px;
+}
+
+/* Rótulo curto em fonte de 8 bits: o único lugar em que ela aparece. */
+.eyebrow {
+  font-family: var(--font-pixel);
+  font-size: var(--font-size-pixel-mobile);
+  line-height: 1.6;
+  color: var(--color-earth);
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: var(--font-size-hero-mobile);
+  font-weight: 800;
+  line-height: 1.12;
+}
+
+.subtitle {
+  font-size: var(--font-size-body);
+  color: var(--color-muted-text);
+}
+
+.symbol {
+  display: none;
+  width: 140px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .symbol {
+    display: block;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    margin-bottom: var(--space-48);
+  }
+
+  .heroInner {
+    min-height: 280px;
+    padding-block: var(--space-48);
+  }
+
+  .eyebrow {
+    font-size: var(--font-size-pixel-desktop);
+  }
+
+  .title {
+    font-size: var(--font-size-hero-desktop);
+  }
+
+  .subtitle {
+    font-size: 18px;
+  }
+
+  .symbol {
+    width: 170px;
+  }
+}

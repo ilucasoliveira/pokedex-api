@@ -1,0 +1,18 @@
+.footer {
+  margin-top: var(--space-64);
+  padding: var(--space-32) 0;
+  background: var(--color-surface-alt);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-label);
+  color: var(--color-muted-text);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.disclaimer {
+  font-size: 13px;
+}

@@ -1,0 +1,40 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.control {
+  position: relative;
+}
+
+.select {
+  width: 100%;
+  height: var(--min-touch-target);
+  padding: 0 40px 0 var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-white);
+  appearance: none;
+  cursor: pointer;
+}
+
+.select:focus-visible {
+  border-color: var(--color-focus);
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--space-12);
+  transform: translateY(-50%);
+  color: var(--color-muted-text);
+  pointer-events: none;
+}
