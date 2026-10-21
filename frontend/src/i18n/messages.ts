@@ -115,6 +115,17 @@ export const pt = {
   'cry.unavailable': 'Grito indisponível',
   'generation.label': 'Geração {number}',
 
+  // Evolução por pedra
+  'stone.hintOne': 'Arraste a {stone} até {name} para evoluir',
+  'stone.hintMany': 'Arraste uma pedra até {name} para evoluir',
+  'stone.use': 'Usar {stone} em {name}: evolui para {target}',
+  'stone.onlyMale': 'só machos',
+  'stone.onlyFemale': 'só fêmeas',
+  'stone.target': 'vira {target}',
+  'evolve.evolving': '{name} está evoluindo…',
+  'evolve.done': '{from} evoluiu para {to}!',
+  'evolve.congrats': 'Parabéns!',
+
   // Condições de evolução
   'trigger.level-up': 'Subir de nível',
   'trigger.use-item': 'Usar item',
@@ -344,6 +355,16 @@ export const en: Messages = {
   'cry.label': "Play {name}'s cry",
   'cry.unavailable': 'Cry unavailable',
   'generation.label': 'Generation {number}',
+
+  'stone.hintOne': 'Drag the {stone} onto {name} to evolve it',
+  'stone.hintMany': 'Drag a stone onto {name} to evolve it',
+  'stone.use': 'Use {stone} on {name}: evolves into {target}',
+  'stone.onlyMale': 'males only',
+  'stone.onlyFemale': 'females only',
+  'stone.target': 'becomes {target}',
+  'evolve.evolving': '{name} is evolving…',
+  'evolve.done': '{from} evolved into {to}!',
+  'evolve.congrats': 'Congratulations!',
 
   'trigger.level-up': 'Level up',
   'trigger.use-item': 'Use item',

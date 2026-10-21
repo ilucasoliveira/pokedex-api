@@ -1,5 +1,4 @@
-import { Ruler, Sparkles, Weight } from 'lucide-react'
-import { useState } from 'react'
+import { Ruler, Weight } from 'lucide-react'
 
 import { t } from '../i18n'
 import type { Pokemon } from '../services/types'
@@ -14,16 +13,11 @@ import { typeColors } from '../utils/typeColors'
 import { CryButton } from './CryButton'
 import { EvolutionChain } from './EvolutionChain'
 import { FavoriteButton } from './FavoriteButton'
-import { PokemonImage } from './PokemonImage'
+import { HeroArtwork } from './HeroArtwork'
 import { StatBars } from './StatBars'
 import { TypeList } from './TypeBadge'
 import { TypeMatchups } from './TypeMatchups'
 import styles from './PokemonSheet.module.css'
-
-/** A arte shiny fica ao lado da normal no repositório da PokéAPI (.../official-artwork/shiny/25.png). */
-function shinyArtwork(artwork: string | null): string | null {
-  return artwork?.includes('/official-artwork/') ? artwork.replace('/official-artwork/', '/official-artwork/shiny/') : null
-}
 
 interface PokemonSheetProps {
   pokemon: Pokemon
@@ -35,8 +29,6 @@ interface PokemonSheetProps {
 
 export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: PokemonSheetProps) {
   const name = formatName(pokemon.name)
-  const [shiny, setShiny] = useState(false)
-  const shinyUrl = shinyArtwork(pokemon.artwork)
   const regularAbilities = pokemon.abilities.filter((ability) => !ability.is_hidden)
   const hiddenAbilities = pokemon.abilities.filter((ability) => ability.is_hidden)
   const Title = variant === 'page' ? 'h1' : 'h2'
@@ -49,28 +41,7 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
       aria-labelledby={`${ids}-nome`}
     >
       <div className={styles.hero} style={typeColors(pokemon.types[0])}>
-        <div className={styles.artwork}>
-          {/* No detalhe o guia prefere o artwork grande; o sprite é a reserva. */}
-          <PokemonImage
-            key={shiny ? 'shiny' : 'normal'}
-            sources={shiny ? [shinyUrl, pokemon.artwork, pokemon.sprites] : [pokemon.artwork, pokemon.sprites]}
-            pixelated={[pokemon.sprites]}
-            alt={shiny ? t('sheet.artworkShiny', { name }) : t('sheet.artwork', { name })}
-            size={240}
-            loading="eager"
-          />
-          {shinyUrl && (
-            <button
-              type="button"
-              className={shiny ? `${styles.shiny} ${styles.shinyOn}` : styles.shiny}
-              aria-pressed={shiny}
-              onClick={() => setShiny((value) => !value)}
-            >
-              <Sparkles size={16} aria-hidden="true" />
-              {t('sheet.shiny')}
-            </button>
-          )}
-        </div>
+        <HeroArtwork pokemon={pokemon} name={name} interactive={variant === 'page'} />
 
         <div className={styles.identity}>
           <div className={styles.titleRow}>

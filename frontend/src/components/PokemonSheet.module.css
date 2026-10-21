@@ -44,10 +44,12 @@
   filter: drop-shadow(0 8px 12px rgba(31, 31, 29, 0.18));
 }
 
+/* Shiny no canto de cima: o de baixo é das pedras de evolução. */
 .shiny {
   position: absolute;
+  top: var(--space-8);
   right: var(--space-8);
-  bottom: var(--space-8);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -72,6 +74,116 @@
 
 /* flex: 1 faz a coluna de texto ocupar toda a largura ao lado da arte; sem isso,
    ela ficava do tamanho da descrição, e descrições curtas deixavam um vão à direita. */
+/* Arrastando uma pedra: a arte vira o alvo (tracejado), e brilha com a pedra em cima. */
+.dropReady {
+  outline: 3px dashed var(--color-mustard);
+  outline-offset: 4px;
+}
+
+.dropOver {
+  outline-color: #4fb0ea;
+  box-shadow: 0 0 0 6px rgba(127, 216, 255, 0.35), 0 0 28px rgba(79, 176, 234, 0.6);
+}
+
+.dropOver > img {
+  transform: scale(1.06);
+  transition: transform var(--transition-normal);
+}
+
+/* Evoluindo: o Pokémon vira uma silhueta de luz que pulsa cada vez mais rápido,
+   como nos jogos. Chegando: o evoluído surge da luz. */
+.evolvingArt > img,
+.evolvingArt > div:not([aria-hidden]) {
+  animation: silhouette 2.4s ease-in forwards;
+}
+
+.arrivingArt > img {
+  animation: reveal 1.2s ease-out;
+}
+
+@keyframes silhouette {
+  0% {
+    filter: none;
+    transform: scale(1);
+  }
+  10% {
+    filter: brightness(0) invert(1) drop-shadow(0 0 12px #7fd8ff);
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(0.82);
+  }
+  38% {
+    transform: scale(1.06);
+  }
+  50% {
+    transform: scale(0.76);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.72);
+  }
+  78% {
+    transform: scale(1.14);
+  }
+  86% {
+    transform: scale(0.7);
+  }
+  100% {
+    filter: brightness(0) invert(1) drop-shadow(0 0 18px #7fd8ff);
+    transform: scale(1.2);
+  }
+}
+
+@keyframes reveal {
+  from {
+    filter: brightness(0) invert(1) drop-shadow(0 0 18px #7fd8ff);
+    transform: scale(1.15);
+  }
+  to {
+    filter: none;
+    transform: scale(1);
+  }
+}
+
+/* "Parabéns! Pikachu evoluiu para Raichu!" sobre a arte, ao chegar. */
+.arrivalBanner {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-12);
+  z-index: 4;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 8px 14px;
+  border: 2px solid var(--color-mustard);
+  border-radius: var(--radius-button);
+  background: var(--color-highlight);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: var(--shadow-panel);
+  transform: translateX(-50%);
+  animation: bannerIn 400ms ease-out 0.6s both;
+}
+
+.arrivalBanner strong {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--color-earth);
+  margin-bottom: 2px;
+}
+
+@keyframes bannerIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+}
+
 .identity {
   display: flex;
   flex: 1 1 auto;

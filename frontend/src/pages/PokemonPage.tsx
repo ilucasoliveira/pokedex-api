@@ -31,7 +31,9 @@ export function PokemonPage() {
   const slow = useDelayedFlag(query.isPending, 4000)
 
   // O card guarda o endereço da lista (com filtros e página) para o "Voltar".
+  // Navegando entre fichas, só ele segue junto (não o aviso de evolução).
   const from = (location.state as { from?: string } | null)?.from ?? '/pokedex'
+  const navigationState = { from }
   const pokemon = query.data
 
   // Total da Pokédex (soma das gerações), para saber se existe um "próximo".
@@ -56,11 +58,11 @@ export function PokemonPage() {
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isTyping(event.target)) return
       const target = event.key === 'ArrowLeft' ? previousId : event.key === 'ArrowRight' ? nextId : null
-      if (target) navigate(`/pokemon/${target}`, { state: location.state })
+      if (target) navigate(`/pokemon/${target}`, { state: { from } })
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [previousId, nextId, navigate, location.state])
+  }, [previousId, nextId, navigate, from])
 
   let content: ReactNode
   if (query.isPending) {
@@ -87,7 +89,8 @@ export function PokemonPage() {
         <ErrorPanel title={t('pokemon.error')} onRetry={() => query.refetch()} />
       )
   } else {
-    content = <PokemonSheet pokemon={query.data} />
+    // key: cada Pokémon monta uma ficha nova (shiny desligado, animação de chegada etc.).
+    content = <PokemonSheet key={query.data.id} pokemon={query.data} />
   }
 
   return (
@@ -103,13 +106,13 @@ export function PokemonPage() {
               <kbd>←</kbd> <kbd>→</kbd> {t('pokemon.keysHint')}
             </p>
             {previousId && (
-              <Link to={`/pokemon/${previousId}`} state={location.state} className={styles.step} aria-label={t('pokemon.previous', { number: formatNumber(previousId) })}>
+              <Link to={`/pokemon/${previousId}`} state={navigationState} className={styles.step} aria-label={t('pokemon.previous', { number: formatNumber(previousId) })}>
                 <ChevronLeft size={18} aria-hidden="true" />
                 {formatNumber(previousId)}
               </Link>
             )}
             {nextId && (
-              <Link to={`/pokemon/${nextId}`} state={location.state} className={styles.step} aria-label={t('pokemon.next', { number: formatNumber(nextId) })}>
+              <Link to={`/pokemon/${nextId}`} state={navigationState} className={styles.step} aria-label={t('pokemon.next', { number: formatNumber(nextId) })}>
                 {formatNumber(nextId)}
                 <ChevronRight size={18} aria-hidden="true" />
               </Link>

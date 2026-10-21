@@ -1,0 +1,219 @@
+/* Efeitos da evolução, inspirados nos quadros de referência: faíscas azuis em
+   espiral, anel de luz pulsando, explosão em estrela e clarão. Com movimento
+   reduzido, a regra do kit corta as animações e sobra só o clarão final. */
+
+.fx {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.fx > * {
+  grid-area: 1 / 1;
+}
+
+.glow {
+  width: 90%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(127, 216, 255, 0.7) 35%, rgba(79, 176, 234, 0) 70%);
+}
+
+.ring {
+  width: 62%;
+  aspect-ratio: 1;
+  border: 5px solid #4fb0ea;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px rgba(127, 216, 255, 0.6),
+    inset 0 0 24px rgba(127, 216, 255, 0.9),
+    0 0 24px rgba(79, 176, 234, 0.8);
+}
+
+.orbit {
+  position: relative;
+  width: 86%;
+  aspect-ratio: 1;
+}
+
+/* Cada faísca fica num raio do círculo, girada pelo próprio ângulo. */
+.sparkleSlot {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--angle));
+}
+
+.sparkle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  fill: #7fd8ff;
+  filter: drop-shadow(0 0 3px #4fb0ea);
+  animation: twinkle 0.5s steps(2, jump-none) infinite alternate;
+}
+
+.sparkleSlot:nth-child(even) .sparkle {
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  fill: #ffffff;
+  animation-delay: 0.25s;
+}
+
+.burst {
+  width: 100%;
+  aspect-ratio: 1;
+  fill: #ffffff;
+  filter: drop-shadow(0 0 10px #7fd8ff) drop-shadow(0 0 22px #4fb0ea);
+  opacity: 0;
+}
+
+.flash {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  opacity: 0;
+}
+
+@keyframes twinkle {
+  to {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+}
+
+/* ---------- Evoluindo (2,6 s) ---------- */
+
+.evolving .glow {
+  animation: glowGrow 2.3s ease-in forwards;
+}
+
+.evolving .ring {
+  animation: ringPulse 0.45s ease-in-out infinite alternate;
+}
+
+.evolving .orbit {
+  animation: spiralIn 2.2s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+.evolving .burst {
+  animation: burst 0.7s ease-out 1.9s forwards;
+}
+
+.evolving .flash {
+  animation: flashIn 0.5s ease-in 2.1s forwards;
+}
+
+@keyframes glowGrow {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes ringPulse {
+  from {
+    transform: scale(0.75);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+}
+
+@keyframes spiralIn {
+  from {
+    transform: rotate(0deg) scale(1.3);
+  }
+  to {
+    transform: rotate(720deg) scale(0.45);
+  }
+}
+
+@keyframes burst {
+  from {
+    opacity: 1;
+    transform: scale(0.1) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4) rotate(25deg);
+  }
+}
+
+@keyframes flashIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Chegando (1,4 s): a luz se dissipa e revela o evoluído ---------- */
+
+.arriving .flash {
+  opacity: 1;
+  animation: flashOut 0.6s ease-out forwards;
+}
+
+.arriving .glow {
+  animation: glowOut 1.2s ease-out forwards;
+}
+
+.arriving .ring {
+  animation: ringOut 1s ease-out forwards;
+}
+
+.arriving .orbit {
+  animation: scatter 1.3s ease-out forwards;
+}
+
+@keyframes flashOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes glowOut {
+  from {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes ringOut {
+  from {
+    opacity: 1;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes scatter {
+  from {
+    opacity: 1;
+    transform: rotate(0deg) scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(160deg) scale(1.7);
+  }
+}

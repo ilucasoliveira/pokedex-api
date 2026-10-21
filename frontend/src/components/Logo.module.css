@@ -38,6 +38,18 @@
   white-space: nowrap;
 }
 
+/* Celular estreito: o slogan sai e o nome encolhe, para caberem os botões de
+   idioma, tema e menu ao lado (sem isso, o menu era empurrado para fora da tela). */
+@media (max-width: 479px) {
+  .tagline {
+    display: none;
+  }
+
+  .name {
+    font-size: 24px;
+  }
+}
+
 @media (min-width: 1024px) {
   .symbol {
     width: 34px;
