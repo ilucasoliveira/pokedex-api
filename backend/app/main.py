@@ -85,11 +85,17 @@ app.add_middleware(
 )
 
 
-@app.get(
+# HEAD também: monitores de disponibilidade (UptimeRobot e afins) costumam usar
+# HEAD, e sem ele a rota respondia 405 e o monitor marcava a API como fora do ar.
+@app.api_route(
     "/health",
+    methods=["GET", "HEAD"],
     tags=["health"],
     summary="Health check",
-    description="Returns OK when the API process is running. Does not check the database or Redis.",
+    description=(
+        "Returns OK when the API process is running. Does not check the database or Redis. "
+        "Accepts HEAD, for uptime monitors."
+    ),
 )
 def health_check() -> dict[str, str]:
     return {"status": "OK"}
