@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/ilucasoliveira/pokedex-api/actions/workflows/ci.yml/badge.svg)
 
-**API no ar:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
+**Site no ar:** [https://rota151-9ykf.onrender.com](https://rota151-9ykf.onrender.com) · **API no ar:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
 
 API REST inspirada na [PokéAPI](https://pokeapi.co/) para cadastrar, consultar, atualizar e excluir pokémons. Projeto final do módulo de Python para back-end do curso Full Stack Python da EBAC.
 
@@ -474,8 +474,9 @@ Cobertura por área:
 
 ## Deploy
 
-A API está publicada no [Render](https://render.com/) (plano gratuito):
+A API e o site estão publicados no [Render](https://render.com/) (plano gratuito):
 
+- **Site (Rota151):** [https://rota151-9ykf.onrender.com](https://rota151-9ykf.onrender.com)
 - **Documentação:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
 - **Health check:** [https://pokedex-api-cb8d.onrender.com/health](https://pokedex-api-cb8d.onrender.com/health)
 
