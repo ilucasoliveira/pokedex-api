@@ -22,7 +22,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 - **Cache com Redis** nas leituras, invalidado a cada alteração. Se o Redis cair, a API continua funcionando direto pelo banco
 - **Autenticação JWT**: leitura pública, criação/importação/edição/exclusão exigem token
 - **Documentação interativa** em `/docs` (Swagger) com descrições, exemplos e códigos de erro
-- **110 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
+- **111 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
 - **Type hints** em todas as funções, conferidas com mypy
 - **Deploy automático** no Render pelo GitHub Actions, só depois dos testes passarem
 
@@ -496,13 +496,27 @@ O front-end (`rota151`) é um site estático: o Render roda `npm ci && npm run b
 3. No GitHub, **Settings > Secrets and variables > Actions > New repository secret**, com o nome `RENDER_DEPLOY_HOOK_URL` e a URL copiada como valor
 4. Copie o endereço do serviço `rota151` e coloque em `CORS_ORIGINS` da `pokedex-api` (ex.: `https://rota151.onrender.com,http://localhost:5173`). Se a API não estiver em `pokedex-api-cb8d.onrender.com`, ajuste também a `VITE_API_URL` do `rota151` no `render.yaml`
 
+### Monitoramento
+
+O [UptimeRobot](https://uptimerobot.com/) (plano gratuito) consulta a API e o site a cada 5 minutos e avisa por e-mail se algum sair do ar.
+
+| Monitor      | Endereço                                        | Tipo     |
+| ------------ | ----------------------------------------------- | -------- |
+| API          | `https://pokedex-api-cb8d.onrender.com/health`  | HTTP(s)  |
+| Site         | `https://rota151-9ykf.onrender.com`             | HTTP(s)  |
+| Dados        | `https://pokedex-api-cb8d.onrender.com/pokemons?limit=1` | Palavra-chave `bulbasaur` |
+
+O `/health` não consulta o banco, então o monitor de dados confere se a listagem ainda traz o Bulbasaur: ele acusa o banco fora do ar ou vazio (o PostgreSQL gratuito do Render expira em 30 dias). A listagem fica em cache no Redis, então o monitor quase não pesa no banco.
+
+As consultas na API também a mantêm acordada: no plano gratuito do Render, ela "dorme" após 15 minutos sem acesso, e a primeira visita depois disso esperava 30 a 60 segundos. O `/health` aceita `HEAD` além de `GET`, porque é o método que monitores como o UptimeRobot costumam usar. Com a API sempre ativa, ela consome cerca de 744 das 750 horas gratuitas mensais do Render; o site estático não entra nessa conta.
+
 ## CI/CD
 
 O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub Actions em quatro etapas, cada uma só começando se a anterior passar:
 
 | Job               | Quando roda                        | O que faz                                                                                 |
 | ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 110 testes                     |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 111 testes                     |
 | **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
 | **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
 | **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |
@@ -534,7 +548,7 @@ Em paralelo, o job **Frontend** instala as dependências de `frontend/` com Node
 - **Cache durante queda do Redis**: se uma alteração acontecer com o Redis fora do ar, a invalidação falha e o dado antigo pode ser servido do cache até o TTL (1 hora) vencer depois que o Redis voltar
 - **Avisos no log com Redis fora**: aparecem mensagens `Future exception was never retrieved` com `gaierror`. São avisos da resolução de nome cancelada pelo timeout, não afetam as respostas
 - **Registro aberto e sem refresh token**: qualquer pessoa cria conta, e o token expira sem renovação automática
-- **Plano gratuito do Render**: a API "dorme" após 15 minutos sem acesso, e a primeira requisição depois disso demora uns 30 a 60 segundos. O PostgreSQL gratuito do Render expira depois de 30 dias e precisa ser recriado
+- **Plano gratuito do Render**: sem acesso por 15 minutos, a API "dorme", e a primeira requisição depois disso demora uns 30 a 60 segundos. O [monitoramento](#monitoramento) a mantém acordada. O PostgreSQL gratuito do Render expira depois de 30 dias e precisa ser recriado (o monitor de dados avisa)
 
 ## Histórico de desenvolvimento
 
