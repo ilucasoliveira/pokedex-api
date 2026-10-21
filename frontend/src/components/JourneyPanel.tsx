@@ -1,6 +1,7 @@
 import { Compass, Heart, RotateCcw, Trophy } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 
+import { locale, t } from '../i18n'
 import { useGenerations } from '../services/queries'
 import { discoveredCount, pickUndiscovered, resetJourney, useJourney } from '../store/journey'
 import buttons from '../styles/buttons.module.css'
@@ -23,7 +24,7 @@ export function JourneyPanel() {
   }
 
   function restart() {
-    if (window.confirm('Apagar seus favoritos e os Pokémon descobertos neste navegador?')) {
+    if (window.confirm(t('journey.confirm'))) {
       resetJourney()
     }
   }
@@ -31,20 +32,16 @@ export function JourneyPanel() {
   return (
     <section className={styles.panel} aria-labelledby="jornada-titulo">
       <div className={styles.text}>
-        <p className={styles.eyebrow}>Sua jornada</p>
+        <p className={styles.eyebrow}>{t('journey.eyebrow')}</p>
         <h2 id="jornada-titulo" className={styles.title}>
           {complete
-            ? 'Pokédex completa!'
+            ? t('journey.completeTitle')
             : found === 0
-              ? 'Comece sua Pokédex'
-              : `${formatCount(found)} de ${formatCount(total)} descobertos`}
+              ? t('journey.startTitle')
+              : t('journey.progressTitle', { found: formatCount(found), total: formatCount(total) })}
         </h2>
         <p className={styles.lead}>
-          {complete
-            ? 'Você abriu a ficha de todos os Pokémon. Uma jornada e tanto.'
-            : found === 0
-              ? 'Cada ficha que você abre entra para a sua Pokédex. Quantos você consegue descobrir?'
-              : 'Cada ficha aberta conta. Seu progresso fica salvo neste navegador.'}
+          {complete ? t('journey.completeLead') : found === 0 ? t('journey.startLead') : t('journey.progressLead')}
         </p>
       </div>
 
@@ -56,27 +53,27 @@ export function JourneyPanel() {
             aria-valuemin={0}
             aria-valuemax={total}
             aria-valuenow={found}
-            aria-label="Pokémon descobertos"
+            aria-label={t('journey.progressLabel')}
           >
             <span className={styles.fill} style={{ width: `${percent}%` }} />
           </div>
-          <span className={styles.percent}>{percent.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
+          <span className={styles.percent}>{percent.toLocaleString(locale(), { maximumFractionDigits: 1 })}%</span>
         </div>
       )}
 
       <div className={styles.actions}>
         <button type="button" className={buttons.primary} onClick={discoverNew} disabled={total === 0}>
           {complete ? <Trophy size={18} aria-hidden="true" /> : <Compass size={18} aria-hidden="true" />}
-          {complete ? 'Rever um Pokémon' : 'Descobrir um Pokémon novo'}
+          {complete ? t('journey.revisit') : t('journey.discover')}
         </button>
         <Link to="/favoritos" className={buttons.secondary}>
           <Heart size={18} aria-hidden="true" />
-          Favoritos ({journey.favorites.length})
+          {t('journey.favorites', { count: journey.favorites.length })}
         </Link>
         {(found > 0 || journey.favorites.length > 0) && (
           <button type="button" className={styles.reset} onClick={restart}>
             <RotateCcw size={16} aria-hidden="true" />
-            Recomeçar
+            {t('journey.restart')}
           </button>
         )}
       </div>

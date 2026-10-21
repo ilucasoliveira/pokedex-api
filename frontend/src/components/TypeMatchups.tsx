@@ -1,4 +1,5 @@
 import { defenseMatchups, formatMultiplier, type Matchup } from '../utils/typeChart'
+import { t } from '../i18n'
 import { formatType } from '../utils/format'
 import { TypeBadge } from './TypeBadge'
 import styles from './TypeMatchups.module.css'
@@ -11,17 +12,15 @@ export function TypeMatchups({ types }: TypeMatchupsProps) {
   const { weak, resistant, immune } = defenseMatchups(types)
 
   if (weak.length + resistant.length + immune.length === 0) {
-    return <p className={styles.note}>Não informado</p>
+    return <p className={styles.note}>{t('sheet.notInformed')}</p>
   }
 
   return (
     <div className={styles.matchups}>
-      <Group title="Fraco contra" items={weak} />
-      <Group title="Resistente a" items={resistant} />
-      <Group title="Imune a" items={immune} />
-      <p className={styles.note}>
-        Dano recebido de cada tipo de golpe. Não considera habilidades (ex.: Levitate).
-      </p>
+      <Group title={t('matchups.weak')} items={weak} />
+      <Group title={t('matchups.resistant')} items={resistant} />
+      <Group title={t('matchups.immune')} items={immune} />
+      <p className={styles.note}>{t('matchups.note')}</p>
     </div>
   )
 }

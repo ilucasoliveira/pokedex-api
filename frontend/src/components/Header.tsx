@@ -2,17 +2,19 @@ import { Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 
+import { t, type MessageKey } from '../i18n'
 import { useJourney } from '../store/journey'
+import { PreferenceToggles } from './PreferenceToggles'
 import { Logo } from './Logo'
 import styles from './Header.module.css'
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Início', end: true },
-  { to: '/pokedex', label: 'Pokédex', end: false },
-  { to: '/tipos', label: 'Tipos', end: false },
-  { to: '/geracoes', label: 'Gerações', end: false },
-  { to: '/favoritos', label: 'Favoritos', end: false },
-  { to: '/sobre', label: 'Sobre', end: false },
+const NAV_ITEMS: { to: string; label: MessageKey; end: boolean }[] = [
+  { to: '/', label: 'nav.home', end: true },
+  { to: '/pokedex', label: 'nav.pokedex', end: false },
+  { to: '/tipos', label: 'nav.types', end: false },
+  { to: '/geracoes', label: 'nav.generations', end: false },
+  { to: '/favoritos', label: 'nav.favorites', end: false },
+  { to: '/sobre', label: 'nav.about', end: false },
 ]
 
 export function Header() {
@@ -39,25 +41,29 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
-        <Link to="/" className={styles.brand} aria-label="Rota151, página inicial">
+        <Link to="/" className={styles.brand} aria-label={t('brand.home')}>
           <Logo />
         </Link>
 
-        <button
-          ref={toggleRef}
-          type="button"
-          className={styles.toggle}
-          aria-expanded={menuOpen}
-          aria-controls="menu-principal"
-          onClick={() => setOpenedAt(menuOpen ? null : pathname)}
-        >
-          {menuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
-          <span className="visually-hidden">{menuOpen ? 'Fechar menu' : 'Abrir menu'}</span>
-        </button>
+        {/* Idioma, tema e (no celular) o botão do menu, antes do menu na ordem do teclado. */}
+        <div className={styles.actions}>
+          <PreferenceToggles />
+          <button
+            ref={toggleRef}
+            type="button"
+            className={styles.toggle}
+            aria-expanded={menuOpen}
+            aria-controls="menu-principal"
+            onClick={() => setOpenedAt(menuOpen ? null : pathname)}
+          >
+            {menuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
+            <span className="visually-hidden">{menuOpen ? t('menu.close') : t('menu.open')}</span>
+          </button>
+        </div>
 
         <nav
           id="menu-principal"
-          aria-label="Principal"
+          aria-label={t('nav.label')}
           className={menuOpen ? `${styles.nav} ${styles.open}` : styles.nav}
         >
           <ul className={styles.list}>
@@ -68,7 +74,7 @@ export function Header() {
                   end={item.end}
                   className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
                 >
-                  {item.label}
+                  {t(item.label)}
                   {item.to === '/favoritos' && favorites.length > 0 && (
                     <span className={styles.badge}>
                       <span className="visually-hidden">: </span>

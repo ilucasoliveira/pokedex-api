@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { formatType } from '../utils/format'
 import { typeColors } from '../utils/typeColors'
 import styles from './TypeBadge.module.css'
@@ -20,7 +21,7 @@ interface TypeListProps {
 
 export function TypeList({ types }: TypeListProps) {
   return (
-    <ul className={styles.list} aria-label="Tipos">
+    <ul className={styles.list} aria-label={t('types.list')}>
       {types.map((type) => (
         <li key={type}>
           <TypeBadge type={type} />

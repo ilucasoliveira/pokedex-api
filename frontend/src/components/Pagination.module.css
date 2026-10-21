@@ -42,7 +42,7 @@
 .current:hover {
   background: var(--color-forest);
   border-color: var(--color-forest);
-  color: var(--color-white);
+  color: var(--color-on-accent);
 }
 
 .disabled,

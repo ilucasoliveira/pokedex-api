@@ -1,4 +1,5 @@
 import symbolUrl from '../assets/simbolo-rota151.svg'
+import { t } from '../i18n'
 import styles from './Logo.module.css'
 
 interface LogoProps {
@@ -17,7 +18,7 @@ export function Logo({ showTagline = true }: LogoProps) {
         </span>
         {showTagline && (
           <span className={styles.tagline} aria-hidden="true">
-            Explorar · Descobrir · Completar
+            {t('brand.tagline')}
           </span>
         )}
       </span>

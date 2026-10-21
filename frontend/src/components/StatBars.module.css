@@ -35,7 +35,7 @@
 .track {
   height: 10px;
   border-radius: var(--radius-pill);
-  background: #efe5d2;
+  background: var(--color-track);
   overflow: hidden;
 }
 

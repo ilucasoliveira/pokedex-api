@@ -13,6 +13,8 @@ Interface web da Pokedex API, seguindo o kit de design Rota151 e o slogan dele, 
 - **Favoritos**: coração nos cards e na ficha, contador no menu e página própria
 - **Vistos recentemente**, para retomar a exploração
 - Hero ilustrado (trilha, montanhas e a placa da Rota 151, em SVG próprio com as cores do kit), com animações leves que somem com movimento reduzido
+- **Português e inglês**: botão `EN`/`PT` no header. Toda a interface muda, inclusive números (`1.025` / `1,025`), unidades (`0,4 m` / `0.4 m`), tipos (Fogo / Fire), atributos e as condições de evolução. Sem escolha salva, vale o idioma do navegador
+- **Modo claro e escuro**: botão de sol/lua no header. Sem escolha salva, segue o tema do sistema. O escuro é uma "noite na trilha": fundos castanho-escuros, cards tingidos pela cor do tipo e a paisagem do hero mais escura
 
 ## Stack
 
@@ -81,7 +83,8 @@ src/
 ├── hooks/           # título da aba e aviso de API lenta
 ├── pages/           # uma por rota
 ├── services/        # tipos da API, chamadas HTTP e hooks do TanStack Query
-├── store/           # jornada: favoritos, descobertos e vistos recentemente (localStorage)
+├── i18n/            # textos em português e inglês (messages.ts) e a função t()
+├── store/           # jornada (favoritos, descobertos, vistos) e preferências (idioma, tema)
 ├── styles/          # tokens do kit (sem alterações), base global e botões
 ├── test/            # setup do Vitest e helpers (app em memória, API falsa)
 └── utils/           # formatação pt-BR, parâmetros da URL, paginação, cores e tabela de tipos
@@ -96,6 +99,8 @@ src/
 - **Logo em React**: o logo do kit usa `<text>` com Rubik dentro do SVG; como `<img>`, ele não usaria a fonte da página. O símbolo é a imagem e o nome é texto
 - **Acessibilidade**: link "Pular para o conteúdo", foco visível com o anel do kit, `<select>` nativo nos filtros, menu mobile fechando com Escape e devolvendo o foco, contagem anunciada com `role="status"`, foco levado ao título dos resultados ao trocar de página, alvos de pelo menos 44 px e `prefers-reduced-motion` respeitado (regra do kit)
 - **Jornada só no navegador**: favoritos, descobertos e vistos recentemente ficam no `localStorage` (sem conta nem servidor), sincronizados entre abas. Se o armazenamento estiver bloqueado (modo privado), tudo funciona durante a sessão. "Recomeçar" apaga tudo
+- **Idiomas sem biblioteca**: um dicionário tipado em `src/i18n/messages.ts`. O TypeScript obriga o inglês a ter exatamente as mesmas chaves do português, então nenhum texto fica sem tradução. Trocar o idioma remonta as páginas (a URL e o cache das consultas continuam). A descrição da Pokédex continua em inglês nos dois idiomas, porque é a única que a PokéAPI tem
+- **Tema por tokens**: o tema escuro só troca o valor de variáveis CSS (os tokens do kit e alguns semânticos da aplicação, como `--color-on-accent` e `--color-surface-raised`), sem CSS duplicado. O verde do kit continua nos botões com texto branco; onde o verde vira texto, o escuro usa um tom mais claro para manter o contraste. Tema e idioma são aplicados por um script curto no `index.html`, antes do primeiro desenho, para a página não piscar
 - **Dados derivados, não inventados**: a tabela de fraquezas é a oficial dos jogos (Geração VI em diante) e não considera habilidades, o que a tela avisa. A arte shiny e o grito vêm do repositório público da PokéAPI, no mesmo padrão de URL que ela usa; se não existirem, a arte normal volta e aparece "Grito indisponível". O botão de grito some em navegadores sem suporte a OGG
 - **Sem conteúdo pulando**: a faixa de vistos recentemente é a de quando a página abriu, então abrir um Pokémon no painel não empurra a lista
 - **Busca com debounce de 300 ms**: o Enter busca na hora, digitar não enche o histórico do navegador (a URL é substituída), e buscas antigas são canceladas pelo TanStack Query

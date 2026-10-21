@@ -44,7 +44,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 
 ## Estrutura do projeto
 
-O repositório tem duas partes: a API em `backend/` e a interface web **Rota151** em `frontend/` (React + TypeScript + Vite), documentada no [README próprio](frontend/README.md).
+O repositório tem duas partes: a API em `backend/` e a interface web **Rota151** em `frontend/` (React + TypeScript + Vite, em português e inglês, com modo claro e escuro), documentada no [README próprio](frontend/README.md).
 
 ```
 pokedex-api/

@@ -82,8 +82,8 @@ describe('página do pokémon', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Pikachu' })
     expect(screen.getByText('Evolução não disponível.')).toBeInTheDocument()
-    expect(screen.getByText('Descrição: Não informado')).toBeInTheDocument()
-    expect(screen.getByText('Geração: Não informado')).toBeInTheDocument()
+    expect(screen.getByText('Descrição: não informada')).toBeInTheDocument()
+    expect(screen.getByText('Geração: não informada')).toBeInTheDocument()
     expect(screen.getAllByText('Não informado')).toHaveLength(2)
   })
 

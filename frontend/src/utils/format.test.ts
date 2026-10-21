@@ -64,7 +64,32 @@ describe('condição de evolução', () => {
       conditions: { min_level: 20, relative_physical_stats: 0 },
     })
     expect(formatEvolutionCondition(hitmontop)).toBe('Subir de nível, nível 20, Ataque igual à Defesa')
-    expect(formatEvolutionCondition(node(1, 'x', [], { trigger: 'gimmighoul-coins' }))).toBe('Gimmighoul Coins')
+    expect(formatEvolutionCondition(node(1, 'x', [], { trigger: 'gimmighoul-coins' }))).toBe('Moedas de Gimmighoul')
+    expect(formatEvolutionCondition(node(1, 'x', [], { trigger: 'gatilho-novo' }))).toBe('Gatilho Novo')
+  })
+
+  it('ignora a forma resultante (dado antigo da API) e resume nível e item', () => {
+    // Bug da Floette: "evolved_pokemon_form" aparecia como condição.
+    const floette = node(670, 'floette', [], {
+      trigger: 'level-up',
+      conditions: { min_level: 19, evolved_pokemon_form: 'floette-red' },
+    })
+    const florges = node(671, 'florges', [], {
+      trigger: 'use-item',
+      conditions: { item: 'shiny-stone', evolved_pokemon_form: 'florges-red' },
+    })
+    expect(formatEvolutionCondition(floette)).toBe('Nível 19')
+    expect(formatEvolutionCondition(florges)).toBe('Usar Shiny Stone')
+  })
+
+  it('descreve as condições das gerações novas', () => {
+    const annihilape = node(979, 'annihilape', [], {
+      trigger: 'use-move',
+      conditions: { used_move: 'rage-fist', min_move_count: 20 },
+    })
+    expect(formatEvolutionCondition(annihilape)).toBe('Usar golpe, usando Rage Fist, 20 vezes')
+    const pawmot = node(923, 'pawmot', [], { trigger: 'level-up', conditions: { min_steps: 1000 } })
+    expect(formatEvolutionCondition(pawmot)).toBe('Subir de nível, andando 1.000 passos')
   })
 
   it('não mostra nada na primeira etapa', () => {

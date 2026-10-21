@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { t } from '../i18n'
 import { usePokemonsByIds } from '../services/queries'
 import { useJourney } from '../store/journey'
 import { formatName, formatNumber } from '../utils/format'
@@ -26,7 +27,7 @@ export function RecentlyViewed() {
   return (
     <section className={styles.section} aria-labelledby="recentes-titulo">
       <h2 id="recentes-titulo" className={styles.title}>
-        Vistos recentemente
+        {t('recent.title')}
       </h2>
       <ul className={styles.list}>
         {pokemons.map((pokemon) => (

@@ -17,8 +17,15 @@ TIMEOUT_SECONDS = 10.0
 SPRITE_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{id}.png"
 ARTWORK_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{id}.png"
 
-# Campos de evolution_details que descrevem a própria entrada, não a condição.
-IGNORED_EVOLUTION_FIELDS = {"trigger", "is_default", "version_group", "required_pokemon_form"}
+# Campos de evolution_details que descrevem a própria entrada (ou a forma que
+# entra/sai da evolução, como "floette-red"), não uma condição para evoluir.
+IGNORED_EVOLUTION_FIELDS = {
+    "trigger",
+    "is_default",
+    "version_group",
+    "required_pokemon_form",
+    "evolved_pokemon_form",
+}
 
 JSON = dict[str, Any]
 # Várias espécies dividem a mesma cadeia (bulbasaur, ivysaur, venusaur). No

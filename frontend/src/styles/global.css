@@ -7,7 +7,52 @@
   --font-pixel: "Press Start 2P", ui-monospace, monospace;
   --header-height: 64px;
   --page-gutter: 16px;
+
+  /* Tokens semânticos da aplicação, em cima dos do kit. No tema claro, os valores
+     reproduzem exatamente o visual do kit; o escuro troca só estes valores. */
+  --color-on-accent: #FFFFFF; /* texto sobre verde/vermelho (botões, item ativo) */
+  --color-accent-text: var(--color-forest); /* verde usado como cor de texto */
+  --color-surface-raised: #FFFFFF; /* campos, botões e controles */
+  --color-tint-base: #FFFFFF; /* base dos fundos tingidos pela cor do tipo */
+  --color-header-bg: rgba(253, 246, 233, 0.94);
+  --color-highlight: #FDF1D3; /* item atual, shiny ligado */
+  --color-track: #EFE5D2; /* trilho das barras */
+  --color-skeleton: #F1E8D8;
+  --color-skeleton-shine: #F8F1E4;
+  --color-forest-hover: #256B29;
+  --color-danger-hover: #9D3424;
+  --page-pattern: url("../assets/padrao-mapa.svg");
   color-scheme: light;
+}
+
+/* Tema escuro: noite na trilha. Fundos castanho-escuros (não preto puro), texto
+   creme, e o verde do kit continua nos botões (com texto branco, contraste 5:1);
+   onde o verde vira texto, usa um tom mais claro para continuar legível. */
+:root[data-theme="dark"] {
+  --color-cream: #15130F;
+  --color-surface: #1F1C17;
+  --color-surface-alt: #29251E;
+  --color-border: #3D362C;
+  --color-ink: #F2EBDF;
+  --color-muted-text: #B9AE9C;
+  --color-earth: #C9A27E;
+  --color-link: #7CC4F0;
+  --color-focus: #4FB0EA;
+  --color-error: #FF8A80;
+  --color-success: #7CC983;
+  --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --shadow-panel: 0 12px 28px rgba(0, 0, 0, 0.45);
+
+  --color-accent-text: #7CC983;
+  --color-surface-raised: #24211B;
+  --color-tint-base: #1F1C17;
+  --color-header-bg: rgba(21, 19, 15, 0.92);
+  --color-highlight: #3A3120;
+  --color-track: #3A342B;
+  --color-skeleton: #29251E;
+  --color-skeleton-shine: #332E25;
+  --page-pattern: url("../assets/padrao-mapa-escuro.svg");
+  color-scheme: dark;
 }
 
 @media (min-width: 640px) {
@@ -42,7 +87,7 @@ body {
   line-height: 1.5;
   color: var(--color-ink);
   background-color: var(--color-cream);
-  background-image: url("../assets/padrao-mapa.svg");
+  background-image: var(--page-pattern);
   background-size: 192px 192px;
 }
 

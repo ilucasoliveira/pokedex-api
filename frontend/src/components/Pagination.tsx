@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { t } from '../i18n'
 import { pageItems } from '../utils/pagination'
 import styles from './Pagination.module.css'
 
@@ -15,9 +16,9 @@ export function Pagination({ page, totalPages, hrefFor }: PaginationProps) {
   if (totalPages <= 1) return null
 
   return (
-    <nav aria-label="Paginação" className={styles.pagination}>
+    <nav aria-label={t('pagination.label')} className={styles.pagination}>
       {page > 1 ? (
-        <Link preventScrollReset to={hrefFor(page - 1)} className={styles.arrow} aria-label="Página anterior">
+        <Link preventScrollReset to={hrefFor(page - 1)} className={styles.arrow} aria-label={t('pagination.previous')}>
           <ChevronLeft size={20} aria-hidden="true" />
         </Link>
       ) : (
@@ -39,7 +40,7 @@ export function Pagination({ page, totalPages, hrefFor }: PaginationProps) {
                 to={hrefFor(item)}
                 className={item === page ? `${styles.page} ${styles.current}` : styles.page}
                 aria-current={item === page ? 'page' : undefined}
-                aria-label={`Página ${item}`}
+                aria-label={t('pagination.page', { page: item })}
               >
                 {item}
               </Link>
@@ -49,7 +50,7 @@ export function Pagination({ page, totalPages, hrefFor }: PaginationProps) {
       </ol>
 
       {page < totalPages ? (
-        <Link preventScrollReset to={hrefFor(page + 1)} className={styles.arrow} aria-label="Próxima página">
+        <Link preventScrollReset to={hrefFor(page + 1)} className={styles.arrow} aria-label={t('pagination.next')}>
           <ChevronRight size={20} aria-hidden="true" />
         </Link>
       ) : (

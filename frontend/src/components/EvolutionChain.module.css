@@ -53,11 +53,15 @@
   text-align: center;
 }
 
+/* Condições longas quebram dentro da coluna em vez de vazar sobre as células. */
 .condition {
+  max-width: 100%;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.25;
   color: var(--color-muted-text);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .cell {
@@ -85,7 +89,7 @@ a.cell:hover {
 
 .current {
   border: 2px solid var(--color-mustard);
-  background: #fdf1d3;
+  background: var(--color-highlight);
 }
 
 .cell img,

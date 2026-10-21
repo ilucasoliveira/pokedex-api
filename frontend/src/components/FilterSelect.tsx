@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react'
 
+import { t } from '../i18n'
 import styles from './FilterSelect.module.css'
 
 export interface FilterOption {
@@ -40,7 +41,7 @@ export function FilterSelect({
           value={value}
           onChange={(event) => onChange(event.target.value)}
         >
-          {placeholder !== undefined && <option value="">{loading ? 'Carregando…' : placeholder}</option>}
+          {placeholder !== undefined && <option value="">{loading ? t('filter.loading') : placeholder}</option>}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

@@ -7,7 +7,8 @@ import { PAGE_SIZE, SORT_KEYS, type PokemonFilters, type SortKey } from '../serv
 import { useGenerations, usePokemonList, useTypes } from '../services/queries'
 import buttons from '../styles/buttons.module.css'
 import { catalogQuery, hasActiveFilters, readCatalogParams } from '../utils/catalogParams'
-import { formatCount, formatGeneration, formatType, SORT_LABELS, sortedStat } from '../utils/format'
+import { t } from '../i18n'
+import { formatCount, formatGeneration, formatSort, formatType, sortedStat } from '../utils/format'
 import { DetailPanel } from './DetailPanel'
 import { FilterSelect, type FilterOption } from './FilterSelect'
 import { Pagination } from './Pagination'
@@ -17,7 +18,6 @@ import { ErrorPanel, SlowApiNotice, StatusPanel } from './StatusPanel'
 import styles from './Catalog.module.css'
 
 const SKELETON_COUNT = 8
-const SORT_OPTIONS: FilterOption[] = SORT_KEYS.map((key) => ({ value: key, label: SORT_LABELS[key] }))
 
 // O painel lateral aparece a partir daqui; abaixo, o card abre a página do Pokémon.
 const PANEL_QUERY = '(min-width: 1280px)'
@@ -72,6 +72,7 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
     [panelQuery, setSearchParams],
   )
 
+  const sortOptions: FilterOption[] = SORT_KEYS.map((key) => ({ value: key, label: formatSort(key) }))
   const typeOptions: FilterOption[] = useMemo(
     () =>
       (types.data ?? [])
@@ -116,8 +117,8 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
         <div className={styles.filters}>
           <FilterSelect
             id="filtro-tipo"
-            label="Tipo"
-            placeholder="Todos"
+            label={t('filter.type')}
+            placeholder={t('filter.allTypes')}
             value={filters.type}
             options={typeOptions}
             loading={types.isPending}
@@ -125,8 +126,8 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
           />
           <FilterSelect
             id="filtro-geracao"
-            label="Geração"
-            placeholder="Todas"
+            label={t('filter.generation')}
+            placeholder={t('filter.allGenerations')}
             value={filters.generation ? String(filters.generation) : ''}
             options={generationOptions}
             loading={generations.isPending}
@@ -134,14 +135,14 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
           />
           <FilterSelect
             id="ordenar"
-            label="Ordenar"
+            label={t('filter.sort')}
             value={filters.sort}
-            options={SORT_OPTIONS}
+            options={sortOptions}
             onChange={(sort) => updateFilters({ sort: sort as SortKey })}
           />
           {hasActiveFilters(filters) && (
             <button type="button" className={`${buttons.secondary} ${buttons.small} ${styles.clear}`} onClick={clearFilters}>
-              Limpar filtros
+              {t('filter.clear')}
             </button>
           )}
         </div>
@@ -153,7 +154,7 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
         </Heading>
         <p className={styles.count} role="status">
           {list.data &&
-            (total === 1 ? '1 Pokémon encontrado' : `${formatCount(total)} Pokémon encontrados`)}
+            (total === 1 ? t('catalog.countOne') : t('catalog.countOther', { count: formatCount(total) }))}
         </p>
       </div>
 
@@ -162,7 +163,7 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
       <div className={selected ? `${styles.results} ${styles.withPanel}` : styles.results}>
         <div aria-busy={list.isFetching}>
           {list.isPending ? (
-            <ul className={styles.grid} aria-label="Carregando Pokémon">
+            <ul className={styles.grid} aria-label={t('catalog.loading')}>
               {Array.from({ length: SKELETON_COUNT }, (_, index) => (
                 <li key={index}>
                   <PokemonCardSkeleton />
@@ -170,16 +171,16 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
               ))}
             </ul>
           ) : list.isError ? (
-            <ErrorPanel title="Não foi possível carregar os Pokémon." onRetry={() => list.refetch()} />
+            <ErrorPanel title={t('catalog.error')} onRetry={() => list.refetch()} />
           ) : total === 0 ? (
             <StatusPanel
               kind="empty"
-              title="Não encontramos esse Pokémon."
-              description="Tente outro nome ou número, ou ajuste os filtros."
+              title={t('catalog.emptyTitle')}
+              description={t('catalog.emptyDescription')}
               action={
                 hasActiveFilters(filters) && (
                   <button type="button" className={buttons.secondary} onClick={clearFilters}>
-                    Limpar filtros
+                    {t('filter.clear')}
                   </button>
                 )
               }

@@ -10,6 +10,20 @@
       content="Rota151: atlas interativo do universo Pokémon. Busque por nome ou número, filtre por tipo e geração e veja atributos, habilidades e evoluções."
     />
     <title>Rota151</title>
+    <script>
+      // Tema e idioma antes do primeiro desenho, para a página não piscar.
+      // A lógica completa fica em src/store/preferences.ts.
+      (function () {
+        try {
+          var tema = localStorage.getItem('rota151:tema')
+          var escuro = tema ? tema === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+          document.documentElement.dataset.theme = escuro ? 'dark' : 'light'
+          var idioma = localStorage.getItem('rota151:idioma')
+          if (!idioma) idioma = navigator.language.toLowerCase().indexOf('pt') === 0 ? 'pt' : 'en'
+          document.documentElement.lang = idioma === 'pt' ? 'pt-BR' : 'en'
+        } catch (erro) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

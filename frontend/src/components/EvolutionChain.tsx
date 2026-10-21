@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { t } from '../i18n'
 import type { EvolutionNode } from '../services/types'
 import { formatEvolutionCondition, formatName, formatNumber } from '../utils/format'
 import { PokemonImage } from './PokemonImage'
@@ -20,16 +21,16 @@ const defaultHref = (id: number) => `/pokemon/${id}`
 
 export function EvolutionChain({ chain, currentId, hrefFor = defaultHref }: EvolutionChainProps) {
   if (!chain) {
-    return <p className={styles.empty}>Evolução não disponível.</p>
+    return <p className={styles.empty}>{t('evolution.none')}</p>
   }
   if (chain.evolves_to.length === 0) {
-    return <p className={styles.empty}>Este Pokémon não evolui.</p>
+    return <p className={styles.empty}>{t('evolution.noEvolve')}</p>
   }
 
   return (
     // A cadeia pode ser mais larga que a tela (Eevee): a área rola na horizontal
     // e recebe foco para dar para rolar pelo teclado.
-    <div className={styles.scroller} tabIndex={0} role="region" aria-label="Etapas da evolução">
+    <div className={styles.scroller} tabIndex={0} role="region" aria-label={t('evolution.stages')}>
       <ol className={styles.tree}>
         <Stage node={chain} currentId={currentId} hrefFor={hrefFor} />
       </ol>

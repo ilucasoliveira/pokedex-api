@@ -1,6 +1,7 @@
 import { Search, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
+import { t } from '../i18n'
 import { normalizeSearch } from '../utils/catalogParams'
 import styles from './SearchBar.module.css'
 
@@ -61,7 +62,7 @@ export function SearchBar({ value, onSearch }: SearchBarProps) {
   return (
     <form role="search" className={styles.form} onSubmit={handleSubmit}>
       <label htmlFor="busca" className="visually-hidden">
-        Buscar Pokémon por nome ou número
+        {t('search.label')}
       </label>
       <Search size={20} className={styles.icon} aria-hidden="true" />
       <input
@@ -69,7 +70,7 @@ export function SearchBar({ value, onSearch }: SearchBarProps) {
         id="busca"
         type="search"
         className={styles.input}
-        placeholder="Buscar nome ou nº"
+        placeholder={t('search.placeholder')}
         autoComplete="off"
         spellCheck={false}
         enterKeyHint="search"
@@ -78,14 +79,14 @@ export function SearchBar({ value, onSearch }: SearchBarProps) {
         onChange={(event) => setDraft(event.target.value)}
       />
       {!draft && (
-        <kbd className={styles.shortcut} aria-hidden="true" title="Atalho: tecla /">
+        <kbd className={styles.shortcut} aria-hidden="true" title={t('search.shortcut')}>
           /
         </kbd>
       )}
       {draft && (
         <button type="button" className={styles.clear} onClick={handleClear}>
           <X size={20} aria-hidden="true" />
-          <span className="visually-hidden">Limpar busca</span>
+          <span className="visually-hidden">{t('search.clear')}</span>
         </button>
       )}
     </form>

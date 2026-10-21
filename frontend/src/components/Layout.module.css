@@ -6,7 +6,7 @@
   padding: var(--space-12) var(--space-16);
   border-radius: var(--radius-button);
   background: var(--color-forest);
-  color: var(--color-white);
+  color: var(--color-on-accent);
   font-weight: 700;
   transform: translateY(-200%);
 }

@@ -2,21 +2,22 @@ import { Link } from 'react-router'
 
 import { StatusPanel } from '../components/StatusPanel'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { t } from '../i18n'
 import buttons from '../styles/buttons.module.css'
 
 export function NotFoundPage() {
-  useDocumentTitle('Página não encontrada')
+  useDocumentTitle(t('notFound.title'))
 
   return (
     <div className="container" style={{ paddingTop: 'var(--space-32)' }}>
-      <h1 className="visually-hidden">Página não encontrada</h1>
+      <h1 className="visually-hidden">{t('notFound.title')}</h1>
       <StatusPanel
         kind="empty"
-        title="Esta rota não existe."
-        description="O endereço pode ter mudado ou estar com algum erro de digitação."
+        title={t('notFound.heading')}
+        description={t('notFound.description')}
         action={
           <Link to="/" className={buttons.primary}>
-            Voltar para o início
+            {t('notFound.home')}
           </Link>
         }
       />

@@ -1,6 +1,7 @@
 import { Ruler, Sparkles, Weight } from 'lucide-react'
 import { useState } from 'react'
 
+import { t } from '../i18n'
 import type { Pokemon } from '../services/types'
 import {
   formatGeneration,
@@ -18,8 +19,6 @@ import { StatBars } from './StatBars'
 import { TypeList } from './TypeBadge'
 import { TypeMatchups } from './TypeMatchups'
 import styles from './PokemonSheet.module.css'
-
-const NOT_INFORMED = 'Não informado'
 
 /** A arte shiny fica ao lado da normal no repositório da PokéAPI (.../official-artwork/shiny/25.png). */
 function shinyArtwork(artwork: string | null): string | null {
@@ -56,7 +55,7 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
             key={shiny ? 'shiny' : 'normal'}
             sources={shiny ? [shinyUrl, pokemon.artwork, pokemon.sprites] : [pokemon.artwork, pokemon.sprites]}
             pixelated={[pokemon.sprites]}
-            alt={shiny ? `Arte de ${name} na versão shiny` : `Arte de ${name}`}
+            alt={shiny ? t('sheet.artworkShiny', { name }) : t('sheet.artwork', { name })}
             size={240}
             loading="eager"
           />
@@ -68,7 +67,7 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
               onClick={() => setShiny((value) => !value)}
             >
               <Sparkles size={16} aria-hidden="true" />
-              Shiny
+              {t('sheet.shiny')}
             </button>
           )}
         </div>
@@ -85,17 +84,17 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
           </div>
           <TypeList types={pokemon.types} />
           <p className={styles.generation}>
-            {pokemon.generation ? formatGeneration(pokemon.generation) : `Geração: ${NOT_INFORMED}`}
+            {pokemon.generation ? formatGeneration(pokemon.generation) : t('sheet.generationUnknown')}
           </p>
           <CryButton id={pokemon.id} name={name} />
           {pokemon.description ? (
             // A PokéAPI só tem esses textos em inglês; o lang avisa o leitor de tela.
             <figure className={styles.description}>
               <blockquote lang="en">{pokemon.description}</blockquote>
-              <figcaption className={styles.descriptionSource}>Texto da Pokédex, em inglês</figcaption>
+              <figcaption className={styles.descriptionSource}>{t('sheet.descriptionSource')}</figcaption>
             </figure>
           ) : (
-            <p className={styles.muted}>Descrição: {NOT_INFORMED}</p>
+            <p className={styles.muted}>{t('sheet.descriptionUnknown')}</p>
           )}
         </div>
       </div>
@@ -103,20 +102,20 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
       <div className={styles.grid}>
         <section className={styles.section} aria-labelledby={`${ids}-medidas`}>
           <Section id={`${ids}-medidas`} className={styles.sectionTitle}>
-            Medidas
+            {t('sheet.measures')}
           </Section>
           <dl className={styles.measures}>
             <div className={styles.measure}>
               <dt>
                 <Ruler size={20} aria-hidden="true" />
-                Altura
+                {t('sheet.height')}
               </dt>
               <dd>{formatHeight(pokemon.height)}</dd>
             </div>
             <div className={styles.measure}>
               <dt>
                 <Weight size={20} aria-hidden="true" />
-                Peso
+                {t('sheet.weight')}
               </dt>
               <dd>{formatWeight(pokemon.weight)}</dd>
             </div>
@@ -125,10 +124,10 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
 
         <section className={styles.section} aria-labelledby={`${ids}-habilidades`}>
           <Section id={`${ids}-habilidades`} className={styles.sectionTitle}>
-            Habilidades
+            {t('sheet.abilities')}
           </Section>
           {pokemon.abilities.length === 0 ? (
-            <p className={styles.muted}>{NOT_INFORMED}</p>
+            <p className={styles.muted}>{t('sheet.notInformed')}</p>
           ) : (
             <div className={styles.abilities}>
               {regularAbilities.length > 0 && (
@@ -142,7 +141,7 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
               )}
               {hiddenAbilities.length > 0 && (
                 <div>
-                  <p className={styles.subTitle}>Habilidade oculta</p>
+                  <p className={styles.subTitle}>{t('sheet.hiddenAbility')}</p>
                   <ul className={styles.pills}>
                     {hiddenAbilities.map((ability) => (
                       <li key={ability.name} className={`${styles.pill} ${styles.hidden}`}>
@@ -158,21 +157,21 @@ export function PokemonSheet({ pokemon, variant = 'page', evolutionHref }: Pokem
 
         <section className={`${styles.section} ${styles.wide}`} aria-labelledby={`${ids}-atributos`}>
           <Section id={`${ids}-atributos`} className={styles.sectionTitle}>
-            Atributos base
+            {t('sheet.stats')}
           </Section>
-          {pokemon.stats ? <StatBars stats={pokemon.stats} /> : <p className={styles.muted}>{NOT_INFORMED}</p>}
+          {pokemon.stats ? <StatBars stats={pokemon.stats} /> : <p className={styles.muted}>{t('sheet.notInformed')}</p>}
         </section>
 
         <section className={`${styles.section} ${styles.wide}`} aria-labelledby={`${ids}-tipos`}>
           <Section id={`${ids}-tipos`} className={styles.sectionTitle}>
-            Fraquezas e resistências
+            {t('sheet.matchups')}
           </Section>
           <TypeMatchups types={pokemon.types} />
         </section>
 
         <section className={`${styles.section} ${styles.wide}`} aria-labelledby={`${ids}-evolucao`}>
           <Section id={`${ids}-evolucao`} className={styles.sectionTitle}>
-            Linha evolutiva
+            {t('sheet.evolution')}
           </Section>
           <EvolutionChain chain={pokemon.evolution_chain} currentId={pokemon.id} hrefFor={evolutionHref} />
         </section>

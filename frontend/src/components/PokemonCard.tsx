@@ -2,6 +2,7 @@ import { Check } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router'
 
+import { t } from '../i18n'
 import type { PokemonSummary } from '../services/types'
 import { useJourney } from '../store/journey'
 import {
@@ -66,9 +67,9 @@ export function PokemonCard({
         <span className={styles.number}>
           {formatNumber(pokemon.id)}
           {seen && (
-            <span className={styles.seen} title="Você já viu este Pokémon">
+            <span className={styles.seen} title={t('card.seen')}>
               <Check size={12} strokeWidth={3} aria-hidden="true" />
-              <span className="visually-hidden">, já descoberto</span>
+              <span className="visually-hidden">{t('card.seenHidden')}</span>
             </span>
           )}
         </span>

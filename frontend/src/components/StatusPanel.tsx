@@ -1,6 +1,7 @@
 import { CloudOff, RefreshCw, SearchX } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { t } from '../i18n'
 import buttons from '../styles/buttons.module.css'
 import styles from './StatusPanel.module.css'
 
@@ -35,11 +36,11 @@ export function ErrorPanel({ title, onRetry }: ErrorPanelProps) {
     <StatusPanel
       kind="error"
       title={title}
-      description="A API não respondeu como esperado. Confira sua conexão e tente de novo em alguns instantes."
+      description={t('status.errorDescription')}
       action={
         <button type="button" className={buttons.danger} onClick={onRetry}>
           <RefreshCw size={18} aria-hidden="true" />
-          Tentar novamente
+          {t('status.retry')}
         </button>
       }
     />
@@ -54,9 +55,7 @@ interface SlowApiNoticeProps {
 export function SlowApiNotice({ visible }: SlowApiNoticeProps) {
   return (
     <p className={styles.slow} role="status">
-      {visible
-        ? 'A API está acordando (o servidor gratuito dorme quando fica parado). Isso pode levar até um minuto.'
-        : ''}
+      {visible ? t('status.slow') : ''}
     </p>
   )
 }

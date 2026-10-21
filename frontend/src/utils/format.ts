@@ -1,11 +1,7 @@
+import { locale, t, type MessageKey } from '../i18n'
 import type { SortKey } from '../services/pokemonApi'
 import type { EvolutionNode, PokemonStats } from '../services/types'
-
-const decimal = new Intl.NumberFormat('pt-BR', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-})
-const integer = new Intl.NumberFormat('pt-BR')
+import { getLanguage } from '../store/preferences'
 
 /** 25 → "#0025". Números maiores que 9999 continuam inteiros. */
 export function formatNumber(id: number): string {
@@ -13,17 +9,21 @@ export function formatNumber(id: number): string {
 }
 
 export function formatCount(value: number): string {
-  return integer.format(value)
+  return new Intl.NumberFormat(locale()).format(value)
 }
 
-/** Altura vem em decímetros, como na PokéAPI: 4 → "0,4 m". */
+function oneDecimal(value: number): string {
+  return new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)
+}
+
+/** Altura vem em decímetros, como na PokéAPI: 4 → "0,4 m" (ou "0.4 m"). */
 export function formatHeight(decimetres: number): string {
-  return `${decimal.format(decimetres / 10)} m`
+  return `${oneDecimal(decimetres / 10)} m`
 }
 
-/** Peso vem em hectogramas, como na PokéAPI: 60 → "6,0 kg". */
+/** Peso vem em hectogramas, como na PokéAPI: 60 → "6,0 kg" (ou "6.0 kg"). */
 export function formatWeight(hectograms: number): string {
-  return `${decimal.format(hectograms / 10)} kg`
+  return `${oneDecimal(hectograms / 10)} kg`
 }
 
 /** Nomes da API vêm em minúsculas e com hífen: "lightning-rod" → "Lightning Rod". */
@@ -55,12 +55,12 @@ function toRoman(value: number): string {
   return result
 }
 
-/** 1 → "Geração I". Gerações acima de 39 (se existirem) ficam em arábico. */
+/** 1 → "Geração I" / "Generation I". Gerações acima de 39 ficam em arábico. */
 export function formatGeneration(generation: number): string {
-  return `Geração ${generation < 40 ? toRoman(generation) : generation}`
+  return t('generation.label', { number: generation < 40 ? toRoman(generation) : generation })
 }
 
-export const TYPE_LABELS: Record<string, string> = {
+export const TYPE_LABELS_PT: Record<string, string> = {
   normal: 'Normal',
   fire: 'Fogo',
   water: 'Água',
@@ -81,41 +81,39 @@ export const TYPE_LABELS: Record<string, string> = {
   fairy: 'Fada',
 }
 
-/** Tipo sem tradução conhecida mantém o nome original da API. */
+/** Os 18 tipos do kit (as chaves da API). */
+export const KNOWN_TYPES = Object.keys(TYPE_LABELS_PT)
+
+/** Em português, o nome do kit; em inglês, o nome oficial. Desconhecidos mantêm o da API. */
 export function formatType(type: string): string {
-  return TYPE_LABELS[type] ?? formatName(type)
+  if (getLanguage() === 'pt' && type in TYPE_LABELS_PT) return TYPE_LABELS_PT[type]
+  return formatName(type)
 }
 
-export const STAT_LABELS: Record<keyof PokemonStats, string> = {
-  hp: 'HP',
-  attack: 'Ataque',
-  defense: 'Defesa',
-  special_attack: 'Ataque especial',
-  special_defense: 'Defesa especial',
-  speed: 'Velocidade',
+export const STAT_KEYS: (keyof PokemonStats)[] = [
+  'hp',
+  'attack',
+  'defense',
+  'special_attack',
+  'special_defense',
+  'speed',
+]
+
+export function formatStat(key: keyof PokemonStats): string {
+  return t(`stats.${key}` as MessageKey)
 }
 
 export type StatSortKey = keyof PokemonStats | 'total'
 
-export const SORT_LABELS: Record<SortKey, string> = {
-  number: 'Número (crescente)',
-  '-number': 'Número (decrescente)',
-  name: 'Nome (A–Z)',
-  '-name': 'Nome (Z–A)',
-  '-total': 'Maior total de atributos',
-  '-hp': 'Maior HP',
-  '-attack': 'Maior ataque',
-  '-defense': 'Maior defesa',
-  '-special_attack': 'Maior ataque especial',
-  '-special_defense': 'Maior defesa especial',
-  '-speed': 'Mais rápidos',
+export function formatSort(sort: SortKey): string {
+  return t(`sort.${sort}` as MessageKey)
 }
 
 /** Atributo usado pela ordenação, para o card mostrar o valor. Nome e número: null. */
 export function sortedStat(sort: SortKey): StatSortKey | null {
   const key = sort.replace(/^-/, '')
   if (key === 'total') return 'total'
-  return key in STAT_LABELS ? (key as keyof PokemonStats) : null
+  return (STAT_KEYS as string[]).includes(key) ? (key as keyof PokemonStats) : null
 }
 
 export function statTotal(stats: PokemonStats): number {
@@ -128,99 +126,104 @@ export function statValue(stats: PokemonStats | null, key: StatSortKey): number 
 }
 
 export function statLabel(key: StatSortKey): string {
-  return key === 'total' ? 'Total' : STAT_LABELS[key]
+  return key === 'total' ? t('stats.total') : formatStat(key)
 }
 
-const TRIGGER_LABELS: Record<string, string> = {
-  'level-up': 'Subir de nível',
-  'use-item': 'Usar item',
-  trade: 'Troca',
-  shed: 'Espaço livre no time',
-  spin: 'Girar',
-  'tower-of-darkness': 'Torre da Escuridão',
-  'tower-of-waters': 'Torre das Águas',
-  'three-critical-hits': 'Três golpes críticos',
-  'take-damage': 'Receber dano',
-  'agile-style-move': 'Golpe em estilo ágil',
-  'strong-style-move': 'Golpe em estilo forte',
-  'recoil-damage': 'Dano de recuo',
-  other: 'Condição especial',
+// Chaves de evolution_details que não são condição para evoluir (a forma que
+// sai da evolução, como "floette-red"). A API já as descarta nos imports novos;
+// aqui também, para os dados antigos.
+const IGNORED_CONDITIONS = new Set(['evolved_pokemon_form', 'required_pokemon_form', 'base_form'])
+
+const TIME_OF_DAY: Record<string, MessageKey> = {
+  day: 'condition.day',
+  night: 'condition.night',
+  dusk: 'condition.dusk',
 }
 
-const TIME_OF_DAY: Record<string, string> = {
-  day: 'de dia',
-  night: 'à noite',
-  dusk: 'ao entardecer',
-}
-
-const RELATIVE_STATS: Record<number, string> = {
-  1: 'Ataque maior que Defesa',
-  0: 'Ataque igual à Defesa',
-  [-1]: 'Ataque menor que Defesa',
+const RELATIVE_STATS: Record<number, MessageKey> = {
+  1: 'condition.attackHigher',
+  0: 'condition.attackEqual',
+  [-1]: 'condition.attackLower',
 }
 
 function describeCondition(key: string, value: string | number | boolean): string {
+  const name = formatName(String(value))
   switch (key) {
     case 'min_level':
-      return `nível ${value}`
+      return t('condition.level', { value: String(value) })
     case 'item':
-      return formatName(String(value))
+      return name
     case 'held_item':
-      return `segurando ${formatName(String(value))}`
+      return t('condition.heldItem', { value: name })
     case 'min_happiness':
-      return `amizade ${value}+`
+      return t('condition.happiness', { value: String(value) })
     case 'min_affection':
-      return `afeição ${value}+`
+      return t('condition.affection', { value: String(value) })
     case 'min_beauty':
-      return `beleza ${value}+`
+      return t('condition.beauty', { value: String(value) })
     case 'time_of_day':
-      return TIME_OF_DAY[String(value)] ?? String(value)
+      return TIME_OF_DAY[String(value)] ? t(TIME_OF_DAY[String(value)]) : String(value)
     case 'known_move':
-      return `conhecendo ${formatName(String(value))}`
+      return t('condition.knownMove', { value: name })
     case 'known_move_type':
-      return `com golpe do tipo ${formatType(String(value))}`
+      return t('condition.knownMoveType', { value: formatType(String(value)) })
     case 'location':
-      return `em ${formatName(String(value))}`
+      return t('condition.location', { value: name })
     case 'gender':
-      return value === 1 ? 'fêmea' : 'macho'
+      return t(value === 1 ? 'condition.female' : 'condition.male')
     case 'trade_species':
-      return `trocando por ${formatName(String(value))}`
+      return t('condition.tradeSpecies', { value: name })
     case 'party_species':
-      return `com ${formatName(String(value))} no time`
+      return t('condition.partySpecies', { value: name })
     case 'party_type':
-      return `com tipo ${formatType(String(value))} no time`
+      return t('condition.partyType', { value: formatType(String(value)) })
     case 'relative_physical_stats':
-      return RELATIVE_STATS[Number(value)] ?? String(value)
+      return RELATIVE_STATS[Number(value)] ? t(RELATIVE_STATS[Number(value)]) : String(value)
     case 'needs_overworld_rain':
-      return 'com chuva'
+      return t('condition.rain')
     case 'turn_upside_down':
-      return 'com o console de cabeça para baixo'
+      return t('condition.upsideDown')
+    case 'min_steps':
+      return t('condition.steps', { value: formatCount(Number(value)) })
+    case 'used_move':
+      return t('condition.usedMove', { value: name })
+    case 'min_move_count':
+      return t('condition.moveCount', { value: String(value) })
+    case 'min_damage_taken':
+      return t('condition.damageTaken', { value: String(value) })
+    case 'needs_multiplayer':
+      return t('condition.multiplayer')
     default:
-      return value === true ? formatName(key) : `${formatName(key)}: ${value}`
+      return value === true ? formatName(key) : `${formatName(key)}: ${formatName(String(value))}`
   }
+}
+
+function formatTrigger(trigger: string): string {
+  const key = `trigger.${trigger}` as MessageKey
+  const text = t(key)
+  // t() devolve a própria chave quando não há tradução: aí vale o nome da API.
+  return text === key ? formatName(trigger) : text
 }
 
 /**
  * Texto curto do que leva a esta etapa, a partir de trigger e conditions da API.
- * "use-item" + item vira "Usar Water Stone"; "level-up" + nível vira "Nível 16".
+ * "level-up" + nível vira "Nível 16"; "use-item" + item vira "Usar Water Stone".
  */
 export function formatEvolutionCondition(node: EvolutionNode): string | null {
-  const { trigger, conditions } = node
-  const entries = Object.entries(conditions)
+  const entries = Object.entries(node.conditions).filter(([key]) => !IGNORED_CONDITIONS.has(key))
+  const { trigger } = node
   if (!trigger && entries.length === 0) return null
 
+  const keys = entries.map(([key]) => key)
   const parts = entries.map(([key, value]) => describeCondition(key, value))
-  const onlyLevel = trigger === 'level-up' && entries.length === 1 && 'min_level' in conditions
-  const onlyItem = trigger === 'use-item' && entries.length === 1 && 'item' in conditions
 
   let text: string
-  if (onlyLevel) {
+  if (trigger === 'level-up' && keys.length === 1 && keys[0] === 'min_level') {
     text = parts[0]
-  } else if (onlyItem) {
-    text = `usar ${parts[0]}`
+  } else if (trigger === 'use-item' && keys.length === 1 && keys[0] === 'item') {
+    text = t('condition.useItem', { value: parts[0] })
   } else {
-    const triggerLabel = trigger ? (TRIGGER_LABELS[trigger] ?? formatName(trigger)) : null
-    text = [triggerLabel, ...parts].filter(Boolean).join(', ')
+    text = [trigger ? formatTrigger(trigger) : null, ...parts].filter(Boolean).join(', ')
   }
   return text.charAt(0).toUpperCase() + text.slice(1)
 }

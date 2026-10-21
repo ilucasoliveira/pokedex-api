@@ -33,7 +33,7 @@
   padding: var(--space-8);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 14%, var(--color-white));
+  background: color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 14%, var(--color-tint-base));
   color: var(--color-ink);
   text-decoration: none;
   text-align: center;

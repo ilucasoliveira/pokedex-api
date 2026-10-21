@@ -56,6 +56,11 @@
   box-shadow: var(--shadow-panel);
 }
 
+/* À noite, a paisagem escurece um pouco junto com a página. */
+:global(:root[data-theme="dark"]) .scene {
+  filter: brightness(0.82) saturate(0.9);
+}
+
 .content {
   display: flex;
   flex-direction: column;

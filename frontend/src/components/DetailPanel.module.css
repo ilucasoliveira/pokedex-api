@@ -54,7 +54,7 @@
   height: var(--min-touch-target);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-button);
-  background: var(--color-white);
+  background: var(--color-surface-raised);
   cursor: pointer;
 }
 
@@ -90,11 +90,11 @@
   min-height: 48px;
   border-radius: var(--radius-button);
   background: var(--color-forest);
-  color: var(--color-white);
+  color: var(--color-on-accent);
   font-weight: 700;
   text-decoration: none;
 }
 
 .full:hover {
-  background: #256b29;
+  background: var(--color-forest-hover);
 }

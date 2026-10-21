@@ -8,7 +8,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   /* Fundo levemente tingido com a cor do primeiro tipo. */
-  background: color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 14%, var(--color-white));
+  background: color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 14%, var(--color-tint-base));
   box-shadow: var(--shadow-card);
   transition:
     transform var(--transition-normal),
@@ -75,7 +75,7 @@
   height: 18px;
   border-radius: var(--radius-pill);
   background: var(--color-forest);
-  color: var(--color-white);
+  color: var(--color-on-accent);
 }
 
 /* O favorito fica acima da camada clicável do link. */
@@ -121,7 +121,7 @@
 
 .skeleton {
   pointer-events: none;
-  background: var(--color-white);
+  background: var(--color-surface-raised);
 }
 
 .skeletonLine,
@@ -129,7 +129,7 @@
   display: block;
   height: 14px;
   border-radius: var(--radius-small);
-  background: linear-gradient(90deg, #f1e8d8 0%, #f8f1e4 50%, #f1e8d8 100%);
+  background: linear-gradient(90deg, var(--color-skeleton) 0%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }

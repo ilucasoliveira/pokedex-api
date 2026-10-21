@@ -1,6 +1,7 @@
 import { ImageOff } from 'lucide-react'
 import { useState } from 'react'
 
+import { t } from '../i18n'
 import styles from './PokemonImage.module.css'
 
 interface PokemonImageProps {
@@ -21,9 +22,9 @@ export function PokemonImage({ sources, pixelated = [], alt, size, loading = 'la
 
   if (!src) {
     return (
-      <div className={styles.placeholder} style={{ width: size, height: size }} role="img" aria-label={`${alt}: imagem indisponível`}>
+      <div className={styles.placeholder} style={{ width: size, height: size }} role="img" aria-label={alt ? t('image.unavailableFor', { name: alt }) : t('image.unavailable')}>
         <ImageOff size={28} aria-hidden="true" />
-        <span>Imagem indisponível</span>
+        <span>{t('image.unavailable')}</span>
       </div>
     )
   }

@@ -6,6 +6,7 @@ import { PokemonSheet } from '../components/PokemonSheet'
 import { ErrorPanel, SlowApiNotice, StatusPanel } from '../components/StatusPanel'
 import { useDelayedFlag } from '../hooks/useDelayedFlag'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { t } from '../i18n'
 import { ApiError } from '../services/pokemonApi'
 import { useGenerations, usePokemon } from '../services/queries'
 import { markDiscovered } from '../store/journey'
@@ -42,7 +43,7 @@ export function PokemonPage() {
     pokemon
       ? `${formatName(pokemon.name)} (${formatNumber(pokemon.id)})`
       : query.isError
-        ? 'Pokémon não encontrado'
+        ? t('pokemon.titleNotFound')
         : null,
   )
 
@@ -65,7 +66,7 @@ export function PokemonPage() {
   if (query.isPending) {
     content = (
       <div className={styles.loading} role="status">
-        <p>Carregando Pokémon…</p>
+        <p>{t('pokemon.loading')}</p>
         <SlowApiNotice visible={slow} />
       </div>
     )
@@ -74,16 +75,16 @@ export function PokemonPage() {
       query.error instanceof ApiError && query.error.status === 404 ? (
         <StatusPanel
           kind="empty"
-          title="Não encontramos esse Pokémon."
-          description={`Nada com o nome ou número "${idOrName}" na Pokédex da Rota151.`}
+          title={t('pokemon.notFoundTitle')}
+          description={t('pokemon.notFoundDescription', { query: idOrName })}
           action={
             <Link to="/pokedex" className={buttons.secondary}>
-              Ver a Pokédex
+              {t('pokemon.seePokedex')}
             </Link>
           }
         />
       ) : (
-        <ErrorPanel title="Não foi possível carregar este Pokémon." onRetry={() => query.refetch()} />
+        <ErrorPanel title={t('pokemon.error')} onRetry={() => query.refetch()} />
       )
   } else {
     content = <PokemonSheet pokemon={query.data} />
@@ -94,21 +95,21 @@ export function PokemonPage() {
       <div className={styles.topBar}>
         <Link to={from} className={styles.back}>
           <ArrowLeft size={18} aria-hidden="true" />
-          Voltar para a lista
+          {t('pokemon.back')}
         </Link>
         {(previousId || nextId) && (
-          <nav className={styles.steps} aria-label="Pokémon vizinhos na Pokédex">
+          <nav className={styles.steps} aria-label={t('pokemon.neighbors')}>
             <p className={styles.hint}>
-              <kbd>←</kbd> <kbd>→</kbd> para navegar
+              <kbd>←</kbd> <kbd>→</kbd> {t('pokemon.keysHint')}
             </p>
             {previousId && (
-              <Link to={`/pokemon/${previousId}`} state={location.state} className={styles.step} aria-label={`Anterior: ${formatNumber(previousId)}`}>
+              <Link to={`/pokemon/${previousId}`} state={location.state} className={styles.step} aria-label={t('pokemon.previous', { number: formatNumber(previousId) })}>
                 <ChevronLeft size={18} aria-hidden="true" />
                 {formatNumber(previousId)}
               </Link>
             )}
             {nextId && (
-              <Link to={`/pokemon/${nextId}`} state={location.state} className={styles.step} aria-label={`Próximo: ${formatNumber(nextId)}`}>
+              <Link to={`/pokemon/${nextId}`} state={location.state} className={styles.step} aria-label={t('pokemon.next', { number: formatNumber(nextId) })}>
                 {formatNumber(nextId)}
                 <ChevronRight size={18} aria-hidden="true" />
               </Link>

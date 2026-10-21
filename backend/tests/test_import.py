@@ -473,6 +473,7 @@ def test_parse_evolution_node_keeps_branches_and_default_conditions() -> None:
                         "trigger": {"name": "level-up", "url": "..."},
                         "min_level": 20,
                         "relative_physical_stats": 0,
+                        "evolved_pokemon_form": {"name": "hitmontop", "url": "..."},
                     }
                 ],
             ),

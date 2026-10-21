@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react'
 
 import type { PokemonStats } from '../services/types'
-import { STAT_LABELS, statTotal } from '../utils/format'
+import { t } from '../i18n'
+import { formatStat, STAT_KEYS, statTotal } from '../utils/format'
 import styles from './StatBars.module.css'
 
 // Maior atributo base que existe (HP da Blissey). As barras são relativas a ele.
@@ -20,13 +21,12 @@ interface StatBarsProps {
 }
 
 export function StatBars({ stats }: StatBarsProps) {
-  const entries = Object.entries(STAT_LABELS) as [keyof PokemonStats, string][]
 
   return (
     <dl className={styles.list}>
-      {entries.map(([key, label]) => (
+      {STAT_KEYS.map((key) => (
         <div key={key} className={styles.row}>
-          <dt className={styles.label}>{label}</dt>
+          <dt className={styles.label}>{formatStat(key)}</dt>
           <dd className={styles.value}>
             <span className={styles.number}>{stats[key]}</span>
             <span className={styles.track} aria-hidden="true">
@@ -39,7 +39,7 @@ export function StatBars({ stats }: StatBarsProps) {
         </div>
       ))}
       <div className={`${styles.row} ${styles.total}`}>
-        <dt className={styles.label}>Total</dt>
+        <dt className={styles.label}>{t('stats.total')}</dt>
         <dd className={styles.value}>
           <span className={styles.number}>{statTotal(stats)}</span>
         </dd>

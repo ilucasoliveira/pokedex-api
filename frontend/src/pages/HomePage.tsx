@@ -6,6 +6,7 @@ import { HeroScene } from '../components/HeroScene'
 import { JourneyPanel } from '../components/JourneyPanel'
 import { RecentlyViewed } from '../components/RecentlyViewed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { t } from '../i18n'
 import buttons from '../styles/buttons.module.css'
 import styles from './HomePage.module.css'
 
@@ -17,21 +18,18 @@ export function HomePage() {
       <section className={styles.hero} aria-labelledby="hero-titulo">
         <div className={`container ${styles.heroInner}`}>
           <div className={styles.heroText}>
-            <p className={styles.eyebrow}>Explorar · Descobrir · Completar</p>
+            <p className={styles.eyebrow}>{t('brand.tagline')}</p>
             <h1 id="hero-titulo" className={styles.title}>
-              Toda grande jornada começa com um encontro.
+              {t('home.title')}
             </h1>
-            <p className={styles.subtitle}>
-              Explore a Pokédex completa: busque por nome ou número, filtre por tipo e geração e
-              descubra atributos, habilidades, fraquezas e evoluções.
-            </p>
+            <p className={styles.subtitle}>{t('home.subtitle')}</p>
             <div className={styles.heroActions}>
               <Link to="/pokedex" className={buttons.primary}>
-                Explorar Pokémon
+                {t('home.explore')}
                 <ArrowRight size={20} aria-hidden="true" />
               </Link>
               <Link to="/tipos" className={buttons.secondary}>
-                Ver os tipos
+                {t('home.types')}
               </Link>
             </div>
           </div>
@@ -44,7 +42,7 @@ export function HomePage() {
       <div className={`container ${styles.content}`}>
         <JourneyPanel />
         <RecentlyViewed />
-        <Catalog title="Pokédex" headingLevel="h2" />
+        <Catalog title={t('catalog.title')} headingLevel="h2" />
       </div>
     </>
   )

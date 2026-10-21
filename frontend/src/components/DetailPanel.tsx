@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 
+import { t } from '../i18n'
 import { ApiError } from '../services/pokemonApi'
 import { usePokemon } from '../services/queries'
 import { markDiscovered } from '../store/journey'
@@ -52,7 +53,7 @@ export function DetailPanel({ id, pageIds, onSelect, onClose, hrefFor, from }: D
   }, [onClose])
 
   return (
-    <aside className={styles.panel} aria-label="Detalhes do Pokémon selecionado">
+    <aside className={styles.panel} aria-label={t('panel.label')}>
       <div className={styles.toolbar} ref={headingRef} tabIndex={-1}>
         <span className={styles.label}>{formatNumber(id)}</span>
         <div className={styles.actions}>
@@ -61,7 +62,7 @@ export function DetailPanel({ id, pageIds, onSelect, onClose, hrefFor, from }: D
             className={styles.icon}
             disabled={!previousId}
             onClick={() => previousId && onSelect(previousId)}
-            aria-label="Pokémon anterior da lista"
+            aria-label={t('panel.previous')}
           >
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
@@ -70,11 +71,11 @@ export function DetailPanel({ id, pageIds, onSelect, onClose, hrefFor, from }: D
             className={styles.icon}
             disabled={!nextId}
             onClick={() => nextId && onSelect(nextId)}
-            aria-label="Próximo Pokémon da lista"
+            aria-label={t('panel.next')}
           >
             <ChevronRight size={20} aria-hidden="true" />
           </button>
-          <button type="button" className={styles.icon} onClick={onClose} aria-label="Fechar detalhes">
+          <button type="button" className={styles.icon} onClick={onClose} aria-label={t('panel.close')}>
             <X size={20} aria-hidden="true" />
           </button>
         </div>
@@ -83,19 +84,19 @@ export function DetailPanel({ id, pageIds, onSelect, onClose, hrefFor, from }: D
       <div className={styles.body}>
         {query.isPending ? (
           <p className={styles.loading} role="status">
-            Carregando…
+            {t('panel.loading')}
           </p>
         ) : query.isError ? (
           query.error instanceof ApiError && query.error.status === 404 ? (
-            <p className={styles.loading}>Não encontramos esse Pokémon.</p>
+            <p className={styles.loading}>{t('pokemon.notFoundTitle')}</p>
           ) : (
-            <ErrorPanel title="Não foi possível carregar este Pokémon." onRetry={() => query.refetch()} />
+            <ErrorPanel title={t('pokemon.error')} onRetry={() => query.refetch()} />
           )
         ) : (
           <>
             <PokemonSheet key={query.data.id} pokemon={query.data} variant="panel" evolutionHref={hrefFor} />
             <Link to={`/pokemon/${query.data.id}`} state={{ from }} className={styles.full}>
-              Ver a ficha completa de {formatName(query.data.name)}
+              {t('panel.full', { name: formatName(query.data.name) })}
               <ExternalLink size={16} aria-hidden="true" />
             </Link>
           </>

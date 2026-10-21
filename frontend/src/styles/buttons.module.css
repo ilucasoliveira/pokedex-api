@@ -24,18 +24,18 @@
 .primary {
   composes: button;
   background: var(--color-forest);
-  color: var(--color-white);
+  color: var(--color-on-accent);
 }
 
 .primary:hover {
-  background: #256b29;
+  background: var(--color-forest-hover);
 }
 
 .secondary {
   composes: button;
   background: transparent;
   border-color: var(--color-forest);
-  color: var(--color-forest);
+  color: var(--color-accent-text);
 }
 
 .secondary:hover {
@@ -45,11 +45,11 @@
 .danger {
   composes: button;
   background: var(--color-red-accessible);
-  color: var(--color-white);
+  color: var(--color-on-accent);
 }
 
 .danger:hover {
-  background: #9d3424;
+  background: var(--color-danger-hover);
 }
 
 .small {

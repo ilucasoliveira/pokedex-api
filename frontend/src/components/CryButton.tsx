@@ -1,6 +1,7 @@
 import { Volume2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
+import { t } from '../i18n'
 import styles from './CryButton.module.css'
 
 // Gritos do repositório público da PokéAPI, no mesmo padrão de URL que ela usa em
@@ -44,13 +45,13 @@ export function CryButton({ id, name }: CryButtonProps) {
         type="button"
         className={status === 'playing' ? `${styles.button} ${styles.playing}` : styles.button}
         onClick={play}
-        aria-label={`Ouvir o grito de ${name}`}
+        aria-label={t('cry.label', { name })}
       >
         <Volume2 size={18} aria-hidden="true" />
-        Ouvir grito
+        {t('cry.play')}
       </button>
       <span className={styles.error} role="status">
-        {status === 'error' ? 'Grito indisponível' : ''}
+        {status === 'error' ? t('cry.unavailable') : ''}
       </span>
     </span>
   )

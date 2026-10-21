@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
-import { createMemoryRouter, RouterProvider } from 'react-router'
+import { createMemoryRouter } from 'react-router'
 import { vi } from 'vitest'
 
+import { App } from '../App'
 import { routes } from '../routes'
 import type { EvolutionNode, Pokemon, PokemonSummary } from '../services/types'
 
@@ -14,7 +15,7 @@ export function renderRoute(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   render(
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <App router={router} />
     </QueryClientProvider>,
   )
   return { router }
