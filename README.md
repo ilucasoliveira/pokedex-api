@@ -11,12 +11,14 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 ## Funcionalidades
 
 - **CRUD completo** de pokémons, com paginação por `limit`/`offset` (total, próxima e página anterior na resposta) e ordenação pelo número da Pokédex
+- **Busca e filtro na listagem**: parte do nome (`search`) e tipo (`type`), combináveis com a paginação
+- **CORS configurável** pela variável `CORS_ORIGINS`, para o front-end em outra origem consumir a API
 - **Tipos com relacionamento N:N**: um pokémon tem um ou dois tipos, e cada tipo é cadastrado uma vez só e reaproveitado
 - **Importação da PokéAPI** pelo nome ou número (`POST /pokemons/import/pikachu`)
 - **Cache com Redis** nas leituras, invalidado a cada alteração. Se o Redis cair, a API continua funcionando direto pelo banco
 - **Autenticação JWT**: leitura pública, criação/importação/edição/exclusão exigem token
 - **Documentação interativa** em `/docs` (Swagger) com descrições, exemplos e códigos de erro
-- **34 testes automatizados** cobrindo sucesso e erro de cada endpoint
+- **51 testes automatizados** cobrindo sucesso e erro de cada endpoint
 - **Type hints** em todas as funções, conferidas com mypy
 - **Deploy automático** no Render pelo GitHub Actions, só depois dos testes passarem
 
@@ -164,6 +166,7 @@ O `.env` continua na raiz do repositório: a API o encontra subindo a partir de 
 | `SECRET_KEY`                  | (64 caracteres hexadecimais)                                                  | Chave que assina os tokens JWT. Nunca versionar                                         |
 | `JWT_ALGORITHM`               | `HS256`                                                                       | Algoritmo de assinatura do JWT                                                          |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                                                          | Validade do token, em minutos                                                           |
+| `CORS_ORIGINS`                | `http://localhost:5173,https://meu-front.com`                                 | Opcional. Origens que podem chamar a API pelo navegador, separadas por vírgula. Padrão: `http://localhost:5173` (Vite) |
 
 Nenhuma credencial fica no código: tudo vem do `.env`, que está no `.gitignore`.
 
@@ -201,7 +204,7 @@ curl -X POST http://localhost:8000/pokemons/import/pikachu \
 | `GET`    | `/health`                 |      | Verifica se a API está no ar                                    |
 | `POST`   | `/auth/register`          |      | Cria um usuário                                                 |
 | `POST`   | `/auth/token`             |      | Faz login e devolve o JWT                                       |
-| `GET`    | `/pokemons`               |      | Lista paginada (`limit` até 100, `offset`), ordenada por número |
+| `GET`    | `/pokemons`               |      | Lista paginada (`limit` até 100, `offset`), ordenada por número, com filtros `search` e `type` |
 | `GET`    | `/pokemons/{pokemon_id}`  |      | Busca um pokémon pelo número                                    |
 | `POST`   | `/pokemons`               | 🔒   | Cadastra um pokémon                                             |
 | `POST`   | `/pokemons/import/{name}` | 🔒   | Importa da PokéAPI pelo nome ou número                          |
@@ -251,9 +254,22 @@ GET /pokemons?limit=20&offset=0
 }
 ```
 
-- `total`: quantos pokémons existem no banco
+- `total`: quantos pokémons atendem aos filtros (sem filtros, quantos existem no banco)
 - `next`: caminho da próxima página, ou `null` na última
 - `previous`: caminho da página anterior, ou `null` na primeira
+
+### Busca e filtro
+
+`GET /pokemons` também aceita dois filtros opcionais, que podem ser combinados entre si e com a paginação:
+
+- `search`: parte do nome, sem diferenciar maiúsculas (`char` encontra charmander, charmeleon e charizard)
+- `type`: nome do tipo (`fire`, `flying`...)
+
+```
+GET /pokemons?search=char&type=flying
+```
+
+Com filtros, o `total` conta só os pokémons que atendem a eles, e os caminhos `next` e `previous` já trazem os filtros (ex.: `/pokemons?limit=20&offset=20&search=char&type=fire`).
 
 **Códigos de resposta usados:**
 
@@ -272,6 +288,7 @@ Usa o padrão **cache-aside**:
 
 - **Leitura** (`GET`): procura no Redis; se não achar, busca no banco e grava no cache por até 1 hora
 - **Escrita** (`POST`, `PATCH`, `DELETE`): após o commit no banco, apaga a chave do pokémon alterado e todas as páginas de listagem (`pokemon:list:*`, buscadas com `SCAN` para não travar o Redis)
+- **Chaves**: `pokemon:{id}` para um pokémon e `pokemon:list:limit=..:offset=..:search=..:type=..` para cada página, então cada combinação de filtros tem seu próprio cache e todas caem no mesmo padrão de invalidação
 
 Toda operação de cache tem limite de 1 segundo e captura falhas de conexão. Se o Redis cair, a API segue respondendo pelo banco.
 
@@ -298,7 +315,8 @@ Cobertura por área:
 
 | Arquivo           | O que testa                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `test_pokemon.py` | CRUD e importação: sucesso, 404, 409, 422, 503, paginação (`data`, `total`, `next`, `previous`), ordenação, reaproveitamento de tipos |
+| `test_pokemon.py` | CRUD e importação: sucesso, 404, 409, 422, 503, paginação (`data`, `total`, `next`, `previous`), ordenação, reaproveitamento de tipos, filtros `search` e `type` (sozinhos, combinados, nos links e na chave de cache) |
+| `test_cors.py`    | Preflight e requisições simples de origem permitida e de origem desconhecida, leitura da variável `CORS_ORIGINS` |
 | `test_auth.py`    | Registro, login, rotas protegidas sem token, com token falso e com token vencido, rotas públicas                                      |
 | `test_health.py`  | Health check                                                                                                                          |
 
@@ -309,7 +327,7 @@ A API está publicada no [Render](https://render.com/) (plano gratuito):
 - **Documentação:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
 - **Health check:** [https://pokedex-api-cb8d.onrender.com/health](https://pokedex-api-cb8d.onrender.com/health)
 
-A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `backend/Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório.
+A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `backend/Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório. A `CORS_ORIGINS` fica em branco no Blueprint e recebe o endereço do front-end publicado em **Environment**, no painel do serviço.
 
 O deploy automático do Render fica **desligado** de propósito: quem dispara o deploy é o GitHub Actions, e só depois que os testes, o build e a publicação da imagem passam.
 
@@ -325,7 +343,7 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub
 
 | Job               | Quando roda                        | O que faz                                                                                 |
 | ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 34 testes                      |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 51 testes                      |
 | **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
 | **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
 | **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |
@@ -339,7 +357,8 @@ Pull requests passam pelos testes e pelo build, mas não publicam imagem nem faz
 - **Leitura pública, escrita protegida**: mesmo modelo da PokéAPI real
 - **Usuário inexistente e senha errada devolvem a mesma mensagem**, para não revelar quais usernames existem
 - **Tabelas criadas no startup** com `create_all` dentro do `lifespan`
-- **Paginação por `limit`/`offset`**, igual à PokéAPI, com os caminhos de próxima e anterior já prontos na resposta
+- **Paginação por `limit`/`offset`**, igual à PokéAPI, com os caminhos de próxima e anterior já prontos na resposta. Os filtros `search` e `type` vão junto nesses caminhos, para a navegação não perder a busca
+- **CORS sem credentials**: o token vai no header `Authorization`, não em cookie, então a API libera só as origens de `CORS_ORIGINS`, os métodos usados e os headers `Authorization` e `Content-Type`
 - **Configuração por URL em produção**: a API aceita `DATABASE_URL` no formato `postgres://` entregue pelos serviços de hospedagem (converte para o driver `asyncpg`) e `REDIS_URL` no lugar de host e porta
 
 ## Limitações conhecidas

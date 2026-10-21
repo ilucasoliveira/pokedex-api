@@ -29,6 +29,11 @@ services:
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "30"
+      # Endereço do front-end publicado (lista separada por vírgula). Fica em
+      # branco no Blueprint e é preenchido no painel do Render; sem ele, a API
+      # só libera o Vite local (http://localhost:5173).
+      - key: CORS_ORIGINS
+        sync: false
 
   - type: keyvalue
     name: pokedex-cache

@@ -137,7 +137,7 @@ class PokemonResponse(BaseModel):
 
 
 class PaginationInfo(BaseModel):
-    total: int = Field(description="Total number of Pokémon in the database.")
+    total: int = Field(description="Total number of Pokémon matching the filters.")
     limit: int = Field(description="Maximum number of items in this page.")
     offset: int = Field(description="Number of items skipped before this page.")
     next: str | None = Field(

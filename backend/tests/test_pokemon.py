@@ -1,11 +1,14 @@
+from fnmatch import fnmatch
 from typing import Any
 
 import httpx
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.models import Type
+from app.routers import pokemon as pokemon_router
 
 MockPokeAPI = Any
 
@@ -151,6 +154,180 @@ async def test_list_pokemons_limit_offset_and_navigation_links(
     assert second.json()["pagination"]["next"] is None
     assert second.json()["pagination"]["previous"] == "/pokemons?limit=2&offset=0"
     assert second.json()["pagination"]["total"] == 3
+
+
+async def create_starters(client: AsyncClient) -> None:
+    for pokedex_id, name, types in [
+        (1, "bulbasaur", ["grass", "poison"]),
+        (4, "charmander", ["fire"]),
+        (5, "charmeleon", ["fire"]),
+        (6, "charizard", ["fire", "flying"]),
+        (16, "pidgey", ["normal", "flying"]),
+    ]:
+        await create_pokemon(client, id=pokedex_id, name=name, types=types)
+
+
+async def test_list_pokemons_search_is_partial_and_case_insensitive(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"search": "CHAR"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [p["name"] for p in body["data"]] == ["charmander", "charmeleon", "charizard"]
+    assert body["pagination"]["total"] == 3
+
+
+async def test_list_pokemons_search_matches_middle_of_name(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"search": "meleo"})
+
+    assert [p["name"] for p in response.json()["data"]] == ["charmeleon"]
+
+
+async def test_list_pokemons_search_treats_wildcards_as_text(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"search": "%"})
+
+    assert response.json()["data"] == []
+    assert response.json()["pagination"]["total"] == 0
+
+
+async def test_list_pokemons_filters_by_type(client: AsyncClient) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"type": "flying"})
+
+    body = response.json()
+    assert [p["name"] for p in body["data"]] == ["charizard", "pidgey"]
+    assert body["pagination"]["total"] == 2
+
+
+async def test_list_pokemons_type_filter_accepts_uppercase(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"type": "Grass"})
+
+    assert [p["name"] for p in response.json()["data"]] == ["bulbasaur"]
+
+
+async def test_list_pokemons_with_unknown_type_returns_empty_page(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"type": "dragon"})
+
+    assert response.status_code == 200
+    assert response.json()["data"] == []
+    assert response.json()["pagination"] == {
+        "total": 0,
+        "limit": 20,
+        "offset": 0,
+        "next": None,
+        "previous": None,
+    }
+
+
+async def test_list_pokemons_combines_search_and_type(client: AsyncClient) -> None:
+    await create_starters(client)
+
+    response = await client.get(
+        "/pokemons", params={"search": "char", "type": "flying"}
+    )
+
+    body = response.json()
+    assert [p["name"] for p in body["data"]] == ["charizard"]
+    assert body["pagination"]["total"] == 1
+
+
+async def test_list_pokemons_with_blank_search_ignores_filter(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"search": "  ", "type": ""})
+
+    assert response.json()["pagination"]["total"] == 5
+
+
+async def test_list_pokemons_with_filters_keeps_them_in_navigation_links(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+    params: dict[str, str | int] = {"limit": 1, "search": "Char", "type": "fire"}
+
+    first = await client.get("/pokemons", params={**params, "offset": 0})
+    middle = await client.get("/pokemons", params={**params, "offset": 1})
+    last = await client.get("/pokemons", params={**params, "offset": 2})
+
+    assert [p["name"] for p in first.json()["data"]] == ["charmander"]
+    assert first.json()["pagination"]["total"] == 3
+    assert first.json()["pagination"]["previous"] is None
+    assert (
+        first.json()["pagination"]["next"]
+        == "/pokemons?limit=1&offset=1&search=char&type=fire"
+    )
+
+    assert [p["name"] for p in middle.json()["data"]] == ["charmeleon"]
+    assert (
+        middle.json()["pagination"]["previous"]
+        == "/pokemons?limit=1&offset=0&search=char&type=fire"
+    )
+
+    assert [p["name"] for p in last.json()["data"]] == ["charizard"]
+    assert last.json()["pagination"]["next"] is None
+
+
+async def test_list_pokemons_navigation_link_follows_to_filtered_page(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    first = await client.get("/pokemons", params={"limit": 2, "type": "fire"})
+    second = await client.get(first.json()["pagination"]["next"])
+
+    assert [p["name"] for p in second.json()["data"]] == ["charizard"]
+    assert second.json()["pagination"]["total"] == 3
+
+
+async def test_list_pokemons_cache_key_includes_filters(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    keys: list[str] = []
+
+    async def record_get_cache(key: str) -> None:
+        keys.append(key)
+
+    monkeypatch.setattr(pokemon_router, "get_cache", record_get_cache)
+
+    await client.get("/pokemons", params={"search": "Char", "type": "fire"})
+    await client.get("/pokemons", params={"search": "char"})
+
+    # Chaves diferentes para filtros diferentes, todas sob o padrão invalidado na escrita.
+    assert keys == [
+        "pokemon:list:limit=20:offset=0:search=char:type=fire",
+        "pokemon:list:limit=20:offset=0:search=char:type=",
+    ]
+    assert all(fnmatch(key, "pokemon:list:*") for key in keys)
+
+
+async def test_list_pokemons_with_search_too_long_returns_422(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/pokemons", params={"search": "a" * 51})
+
+    assert response.status_code == 422
 
 
 async def test_list_pokemons_with_negative_offset_returns_422(

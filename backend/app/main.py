@@ -1,11 +1,25 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine
 from app.models import Base
 from app.routers import auth, pokemon
+
+load_dotenv()
+
+# Origem do Vite em desenvolvimento. Em produção, CORS_ORIGINS lista o endereço do front.
+DEFAULT_CORS_ORIGINS = "http://localhost:5173"
+
+
+def parse_cors_origins(value: str) -> list[str]:
+    # Lista separada por vírgula. Ignora espaços, itens vazios e a barra final,
+    # já que o navegador envia a origem sem barra (https://site.com).
+    return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
 
 
 @asynccontextmanager
@@ -52,6 +66,14 @@ app = FastAPI(
         "email": "lucasoliveirapimentel.dev@gmail.com",
     },
     openapi_tags=TAGS_METADATA,
+)
+
+# O token vai no header Authorization, não em cookie, então não precisamos de credentials.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=parse_cors_origins(os.getenv("CORS_ORIGINS", DEFAULT_CORS_ORIGINS)),
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 

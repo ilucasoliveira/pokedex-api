@@ -1,9 +1,10 @@
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -189,7 +190,9 @@ async def read_one_pokemon(
     summary="List Pokémon",
     description=(
         "Returns a page of Pokémon ordered by Pokédex number, plus pagination info: "
-        "the total in the database and the paths to the next and previous pages. "
+        "the total matching the filters and the paths to the next and previous pages. "
+        "Optional filters: `search` (part of the name, case-insensitive) and `type` "
+        "(type name). Filters can be combined and are kept in the pagination links. "
         "Public endpoint. Each page is cached in Redis for up to 1 hour."
     ),
 )
@@ -200,24 +203,66 @@ async def read_pokemons(
     offset: int = Query(
         default=0, ge=0, description="Number of items to skip before the page."
     ),
+    search: str | None = Query(
+        default=None,
+        max_length=50,
+        description="Part of the Pokémon name. Case-insensitive.",
+        examples=["char"],
+    ),
+    type_name: str | None = Query(
+        default=None,
+        alias="type",
+        max_length=50,
+        description="Type name. Only Pokémon with this type are returned.",
+        examples=["fire"],
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> PokemonListResponse:
-    cache_key = f"pokemon:list:limit={limit}:offset={offset}"
+    # Nomes e tipos são salvos em minúsculas, então basta normalizar a entrada.
+    # Texto vazio ou só com espaços conta como filtro ausente.
+    search = (search or "").strip().lower() or None
+    type_name = (type_name or "").strip().lower() or None
+
+    # O prefixo pokemon:list: continua o mesmo, então a invalidação por padrão
+    # (pokemon:list:*) apaga também as páginas filtradas.
+    cache_key = (
+        f"pokemon:list:limit={limit}:offset={offset}"
+        f":search={search or ''}:type={type_name or ''}"
+    )
     cached_page = await get_cache(cache_key)
 
     if cached_page:
         return PokemonListResponse.model_validate_json(cached_page)
 
-    total = await db.scalar(select(func.count()).select_from(Pokemon)) or 0
+    filters: list[ColumnElement[bool]] = []
+    if search:
+        # autoescape trata % e _ digitados pelo usuário como texto, não como curinga.
+        filters.append(Pokemon.name.contains(search, autoescape=True))
+    if type_name:
+        filters.append(Pokemon.types.any(Type.name == type_name))
+
+    total = (
+        await db.scalar(select(func.count()).select_from(Pokemon).where(*filters)) or 0
+    )
 
     result = await db.execute(
         select(Pokemon)
+        .where(*filters)
         .options(selectinload(Pokemon.types))
         .order_by(Pokemon.id)
         .offset(offset)
         .limit(limit)
     )
     pokemons = result.scalars().all()
+
+    def page_path(page_offset: int) -> str:
+        # Os filtros vão junto nos links para a navegação não perder a busca.
+        params: dict[str, str | int] = {"limit": limit, "offset": page_offset}
+        if search:
+            params["search"] = search
+        if type_name:
+            params["type"] = type_name
+        return f"{router.prefix}?{urlencode(params)}"
 
     next_offset = offset + limit
     previous_offset = max(offset - limit, 0)
@@ -228,16 +273,8 @@ async def read_pokemons(
             total=total,
             limit=limit,
             offset=offset,
-            next=(
-                f"{router.prefix}?limit={limit}&offset={next_offset}"
-                if next_offset < total
-                else None
-            ),
-            previous=(
-                f"{router.prefix}?limit={limit}&offset={previous_offset}"
-                if offset > 0
-                else None
-            ),
+            next=page_path(next_offset) if next_offset < total else None,
+            previous=page_path(previous_offset) if offset > 0 else None,
         ),
     )
     await set_cache(cache_key, response.model_dump_json(), ttl=3600)
