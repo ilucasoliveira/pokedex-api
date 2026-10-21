@@ -374,6 +374,20 @@ class PokemonListResponse(BaseModel):
     pagination: PaginationInfo
 
 
+class TypeCount(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{"name": "bug", "count": 92}]})
+
+    name: str = Field(description="Type name, in lowercase. Use it in `GET /pokemons?type=`.")
+    count: int = Field(description="Number of Pokémon in the database with this type.")
+
+
+class GenerationCount(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{"id": 1, "count": 151}]})
+
+    id: int = Field(description="Generation number. Use it in `GET /pokemons?generation=`.")
+    count: int = Field(description="Number of Pokémon in the database introduced in it.")
+
+
 MAX_BATCH_IMPORT_SIZE = 200
 
 

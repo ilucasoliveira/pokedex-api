@@ -18,6 +18,7 @@ from app.database import get_db
 from app.main import app
 from app.models import Base
 from app import pokeapi
+from app.routers import catalog as catalog_router
 from app.routers import pokemon as pokemon_router
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -83,6 +84,8 @@ def disable_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pokemon_router, "set_cache", fake_noop)
     monkeypatch.setattr(pokemon_router, "delete_cache", fake_noop)
     monkeypatch.setattr(pokemon_router, "delete_cache_by_pattern", fake_noop)
+    monkeypatch.setattr(catalog_router, "get_cache", fake_get_cache)
+    monkeypatch.setattr(catalog_router, "set_cache", fake_noop)
 
 
 @pytest.fixture

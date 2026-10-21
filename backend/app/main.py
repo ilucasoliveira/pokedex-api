@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine
-from app.routers import auth, pokemon
+from app.routers import auth, catalog, pokemon
 
 load_dotenv()
 
@@ -52,6 +52,10 @@ TAGS_METADATA = [
         "name": "pokemons",
         "description": "Pokémon CRUD and import from the PokéAPI. Reads are cached in Redis.",
     },
+    {
+        "name": "catalog",
+        "description": "Types and generations present in the database, to build filters.",
+    },
     {"name": "health", "description": "Liveness check."},
 ]
 
@@ -88,3 +92,4 @@ def health_check() -> dict[str, str]:
 
 app.include_router(auth.router)
 app.include_router(pokemon.router)
+app.include_router(catalog.router)

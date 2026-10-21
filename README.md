@@ -12,6 +12,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 
 - **CRUD completo** de pokémons, com paginação por `limit`/`offset` (total, próxima e página anterior na resposta) e ordenação pelo número da Pokédex
 - **Busca e filtro na listagem**: nome ou número (`search`), tipo (`type`) e geração (`generation`), combináveis com a paginação
+- **Opções dos filtros** em `GET /types` e `GET /generations`, com a quantidade de pokémons em cada, para o front-end não fixar listas na interface
 - **Ficha completa** de cada pokémon: artwork oficial, geração, descrição da Pokédex, atributos base, habilidades (com a oculta identificada) e cadeia evolutiva, inclusive com ramificações como a do Eevee
 - **CORS configurável** pela variável `CORS_ORIGINS`, para o front-end em outra origem consumir a API
 - **Tipos e habilidades com relacionamento N:N**: cada tipo e cada habilidade é cadastrado uma vez só e reaproveitado
@@ -21,7 +22,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 - **Cache com Redis** nas leituras, invalidado a cada alteração. Se o Redis cair, a API continua funcionando direto pelo banco
 - **Autenticação JWT**: leitura pública, criação/importação/edição/exclusão exigem token
 - **Documentação interativa** em `/docs` (Swagger) com descrições, exemplos e códigos de erro
-- **86 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
+- **93 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
 - **Type hints** em todas as funções, conferidas com mypy
 - **Deploy automático** no Render pelo GitHub Actions, só depois dos testes passarem
 
@@ -61,11 +62,13 @@ pokedex-api/
 │   │   ├── cache.py           # cliente Redis e funções de cache tolerantes a falha
 │   │   └── routers/
 │   │       ├── auth.py        # /auth/register e /auth/token
+│   │       ├── catalog.py     # /types e /generations (opções dos filtros)
 │   │       └── pokemon.py     # CRUD e importação de pokémons
 │   ├── migrations/            # Alembic: env.py e versions/ com cada migração
 │   ├── tests/
 │   │   ├── conftest.py        # fixtures: banco em memória, clientes, mocks
 │   │   ├── test_auth.py
+│   │   ├── test_catalog.py
 │   │   ├── test_cors.py
 │   │   ├── test_health.py
 │   │   ├── test_import.py
@@ -276,6 +279,8 @@ curl -X POST http://localhost:8000/pokemons/import/pikachu \
 | `POST`   | `/pokemons/import`        | 🔒   | Importa da PokéAPI uma faixa de números (até 200 por chamada)   |
 | `PATCH`  | `/pokemons/{pokemon_id}`  | 🔒   | Atualiza só os campos enviados                                  |
 | `DELETE` | `/pokemons/{pokemon_id}`  | 🔒   | Exclui um pokémon                                               |
+| `GET`    | `/types`                  |      | Tipos usados por algum pokémon, com a quantidade de cada        |
+| `GET`    | `/generations`            |      | Gerações com algum pokémon, com a quantidade de cada            |
 
 **Exemplo de corpo para `POST /pokemons`:**
 
@@ -401,6 +406,19 @@ Com filtros, o `total` conta só os pokémons que atendem a eles, e os caminhos 
 - `description` é o texto mais recente da Pokédex em inglês, já sem as quebras de linha do jogo. A PokéAPI não tem esses textos em português
 - Campos que a PokéAPI não tem para aquele pokémon vêm como `null` (ou `[]` em `abilities`)
 
+### Opções dos filtros
+
+`GET /types` e `GET /generations` dizem quais valores existem no banco para os filtros `type` e `generation`, já com a quantidade de pokémons em cada. Assim o front-end monta os seletores (e as telas de tipos e gerações) sem fixar listas na interface:
+
+```
+GET /types        →  [{"name": "bug", "count": 92}, {"name": "dark", "count": 69}, ...]
+GET /generations  →  [{"id": 1, "count": 151}, {"id": 2, "count": 100}, ...]
+```
+
+- Tipos em ordem alfabética, gerações em ordem crescente
+- Só aparecem tipos e gerações com pelo menos um pokémon. A contagem de tipos considera os dois tipos de cada pokémon (o Bulbasaur conta em `grass` e em `poison`)
+- O `name` e o `id` são exatamente os valores aceitos em `GET /pokemons?type=` e `?generation=`
+
 **Códigos de resposta usados:**
 
 | Código                | Quando                                                                              |
@@ -418,7 +436,7 @@ Usa o padrão **cache-aside**:
 
 - **Leitura** (`GET`): procura no Redis; se não achar, busca no banco e grava no cache por até 1 hora
 - **Escrita** (`POST`, `PATCH`, `DELETE`): após o commit no banco, apaga a chave do pokémon alterado e todas as páginas de listagem (`pokemon:list:*`, buscadas com `SCAN` para não travar o Redis)
-- **Chaves**: `pokemon:{id}` para um pokémon e `pokemon:list:limit=..:offset=..:search=..:type=..:generation=..` para cada página, então cada combinação de filtros tem seu próprio cache e todas caem no mesmo padrão de invalidação. A busca pelo nome só traduz o nome para o número e usa a mesma chave `pokemon:{id}`
+- **Chaves**: `pokemon:{id}` para um pokémon e `pokemon:list:limit=..:offset=..:search=..:type=..:generation=..` para cada página, então cada combinação de filtros tem seu próprio cache e todas caem no mesmo padrão de invalidação. A busca pelo nome só traduz o nome para o número e usa a mesma chave `pokemon:{id}`. As opções dos filtros ficam em `pokemon:list:types` e `pokemon:list:generations`, de propósito sob o mesmo padrão: toda escrita já as invalida junto com as páginas
 
 Toda operação de cache tem limite de 1 segundo e captura falhas de conexão. Se o Redis cair, a API segue respondendo pelo banco.
 
@@ -449,6 +467,7 @@ Cobertura por área:
 | `test_pokemon.py`    | CRUD: sucesso, 404, 409, 422, paginação (`data`, `total`, `next`, `previous`), ordenação, reaproveitamento de tipos e habilidades, campos novos (atributos, habilidades ocultas, geração), detalhe por número e por nome, filtros `search` (nome e número), `type` e `generation` (sozinhos, combinados, nos links e na chave de cache) |
 | `test_import.py`     | Import da PokéAPI: ficha completa, cadeia evolutiva, nome longo e imagens nulas, espécie ausente, 404, 409, 503; import em lote (pulados, falhas por pokémon, cadeia buscada uma vez, faixa inválida, token); seed; conversão de descrição e de cadeias com ramificação |
 | `test_migrations.py` | Migrações geram o mesmo esquema dos modelos, atualizam um banco criado antes do Alembic sem perder dados e podem ser revertidas |
+| `test_catalog.py`    | `/types` e `/generations`: contagens, ordem, tipos sem pokémon escondidos, banco vazio, chaves e uso do cache |
 | `test_cors.py`    | Preflight e requisições simples de origem permitida e de origem desconhecida, leitura da variável `CORS_ORIGINS` |
 | `test_auth.py`    | Registro, login, rotas protegidas sem token, com token falso e com token vencido, rotas públicas                                      |
 | `test_health.py`  | Health check                                                                                                                          |
@@ -476,7 +495,7 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub
 
 | Job               | Quando roda                        | O que faz                                                                                 |
 | ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 86 testes                      |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 93 testes                      |
 | **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
 | **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
 | **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |
