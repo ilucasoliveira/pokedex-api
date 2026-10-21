@@ -1,16 +1,22 @@
 from fnmatch import fnmatch
 from typing import Any
 
-import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.models import Type
+from app.models import Ability, PokemonAbility, Type
 from app.routers import pokemon as pokemon_router
 
-MockPokeAPI = Any
+STATS = {
+    "hp": 78,
+    "attack": 84,
+    "defense": 78,
+    "special_attack": 109,
+    "special_defense": 85,
+    "speed": 100,
+}
 
 
 def make_payload(**overrides: Any) -> dict[str, Any]:
@@ -30,18 +36,6 @@ async def create_pokemon(client: AsyncClient, **overrides: Any) -> dict[str, Any
     response = await client.post("/pokemons", json=make_payload(**overrides))
     assert response.status_code == 201
     return response.json()
-
-
-POKEAPI_PIKACHU = {
-    "id": 25,
-    "name": "pikachu",
-    "height": 4,
-    "weight": 60,
-    "types": [{"slot": 1, "type": {"name": "electric", "url": "..."}}],
-    "sprites": {
-        "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"
-    },
-}
 
 
 # POST /pokemons
@@ -87,6 +81,98 @@ async def test_create_pokemon_with_more_than_two_types_returns_422(client: Async
     assert response.status_code == 422
 
 
+async def test_create_pokemon_with_details_returns_them(client: AsyncClient) -> None:
+    response = await client.post(
+        "/pokemons",
+        json=make_payload(
+            artwork="https://example.com/6.png",
+            generation=1,
+            description="Spits fire.",
+            stats=STATS,
+            abilities=[
+                {"name": "Blaze"},
+                {"name": "solar-power", "is_hidden": True},
+            ],
+        ),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["artwork"] == "https://example.com/6.png"
+    assert body["generation"] == 1
+    assert body["description"] == "Spits fire."
+    assert body["stats"] == STATS
+    assert body["abilities"] == [
+        {"name": "blaze", "is_hidden": False},
+        {"name": "solar-power", "is_hidden": True},
+    ]
+    assert body["evolution_chain"] is None
+
+
+async def test_create_pokemon_with_only_required_fields_has_empty_details(
+    client: AsyncClient,
+) -> None:
+    payload = make_payload()
+    del payload["sprites"]
+
+    response = await client.post("/pokemons", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["sprites"] is None
+    assert body["artwork"] is None
+    assert body["generation"] is None
+    assert body["description"] is None
+    assert body["stats"] is None
+    assert body["abilities"] == []
+
+
+async def test_create_pokemon_accepts_names_up_to_50_characters(
+    client: AsyncClient,
+) -> None:
+    long_name = "squawkabilly-green-plumage"
+    ok = await client.post("/pokemons", json=make_payload(id=931, name=long_name))
+    too_long = await client.post("/pokemons", json=make_payload(id=932, name="a" * 51))
+
+    assert ok.status_code == 201
+    assert ok.json()["name"] == long_name
+    assert too_long.status_code == 422
+
+
+async def test_create_pokemon_with_repeated_ability_returns_422(
+    client: AsyncClient,
+) -> None:
+    response = await client.post(
+        "/pokemons",
+        json=make_payload(abilities=[{"name": "blaze"}, {"name": "Blaze"}]),
+    )
+
+    assert response.status_code == 422
+
+
+async def test_create_pokemon_with_incomplete_stats_returns_422(
+    client: AsyncClient,
+) -> None:
+    response = await client.post(
+        "/pokemons", json=make_payload(stats={"hp": 78, "attack": 84})
+    )
+
+    assert response.status_code == 422
+
+
+async def test_create_pokemon_reuses_existing_abilities(
+    client: AsyncClient, session_maker: async_sessionmaker
+) -> None:
+    await create_pokemon(client, id=4, name="charmander", abilities=[{"name": "blaze"}])
+    await create_pokemon(client, id=5, name="charmeleon", abilities=[{"name": "blaze"}])
+
+    async with session_maker() as session:
+        result = await session.execute(select(Ability))
+        names = [a.name for a in result.scalars().all()]
+
+    assert names == ["blaze"]
+
+
 async def test_create_pokemon_reuses_existing_types(
     client: AsyncClient, session_maker: async_sessionmaker
 ) -> None:
@@ -116,6 +202,52 @@ async def test_get_pokemon_by_id_not_found_returns_404(client: AsyncClient) -> N
     response = await client.get("/pokemons/999")
 
     assert response.status_code == 404
+
+
+async def test_get_pokemon_by_id_accepts_leading_zeros(client: AsyncClient) -> None:
+    await create_pokemon(client)
+
+    response = await client.get("/pokemons/0006")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == 6
+
+
+async def test_get_pokemon_by_name_is_case_insensitive(client: AsyncClient) -> None:
+    await create_pokemon(client, stats=STATS)
+
+    response = await client.get("/pokemons/Charizard")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == 6
+    assert response.json()["stats"] == STATS
+
+
+async def test_get_pokemon_by_unknown_name_returns_404(client: AsyncClient) -> None:
+    response = await client.get("/pokemons/missingno")
+
+    assert response.status_code == 404
+
+
+async def test_list_pokemons_returns_summary_without_details(
+    client: AsyncClient,
+) -> None:
+    await create_pokemon(client, generation=1, abilities=[{"name": "blaze"}])
+
+    response = await client.get("/pokemons")
+
+    item = response.json()["data"][0]
+    assert set(item) == {
+        "id",
+        "name",
+        "height",
+        "weight",
+        "types",
+        "sprites",
+        "artwork",
+        "generation",
+    }
+    assert item["generation"] == 1
 
 
 async def test_list_pokemons_returns_data_and_pagination(client: AsyncClient) -> None:
@@ -316,10 +448,61 @@ async def test_list_pokemons_cache_key_includes_filters(
 
     # Chaves diferentes para filtros diferentes, todas sob o padrão invalidado na escrita.
     assert keys == [
-        "pokemon:list:limit=20:offset=0:search=char:type=fire",
-        "pokemon:list:limit=20:offset=0:search=char:type=",
+        "pokemon:list:limit=20:offset=0:search=char:type=fire:generation=",
+        "pokemon:list:limit=20:offset=0:search=char:type=:generation=",
     ]
     assert all(fnmatch(key, "pokemon:list:*") for key in keys)
+
+
+async def test_list_pokemons_search_by_number_ignores_leading_zeros(
+    client: AsyncClient,
+) -> None:
+    await create_starters(client)
+
+    plain = await client.get("/pokemons", params={"search": "16"})
+    padded = await client.get("/pokemons", params={"search": "016"})
+
+    assert [p["name"] for p in plain.json()["data"]] == ["pidgey"]
+    assert [p["name"] for p in padded.json()["data"]] == ["pidgey"]
+
+
+async def test_list_pokemons_filters_by_generation(client: AsyncClient) -> None:
+    await create_pokemon(client, id=1, name="bulbasaur", types=["grass"], generation=1)
+    await create_pokemon(client, id=152, name="chikorita", types=["grass"], generation=2)
+    await create_pokemon(client, id=155, name="cyndaquil", types=["fire"], generation=2)
+    await create_pokemon(client, id=999, name="semgeracao", types=["grass"])
+
+    second = await client.get("/pokemons", params={"generation": 2})
+    second_grass = await client.get(
+        "/pokemons", params={"generation": 2, "type": "grass", "limit": 1}
+    )
+
+    assert [p["name"] for p in second.json()["data"]] == ["chikorita", "cyndaquil"]
+    assert second.json()["pagination"]["total"] == 2
+    assert [p["name"] for p in second_grass.json()["data"]] == ["chikorita"]
+    assert second_grass.json()["pagination"]["total"] == 1
+
+
+async def test_list_pokemons_keeps_generation_in_navigation_links(
+    client: AsyncClient,
+) -> None:
+    await create_pokemon(client, id=152, name="chikorita", types=["grass"], generation=2)
+    await create_pokemon(client, id=155, name="cyndaquil", types=["fire"], generation=2)
+
+    response = await client.get("/pokemons", params={"generation": 2, "limit": 1})
+
+    assert (
+        response.json()["pagination"]["next"]
+        == "/pokemons?limit=1&offset=1&generation=2"
+    )
+
+
+async def test_list_pokemons_with_generation_zero_returns_422(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/pokemons", params={"generation": 0})
+
+    assert response.status_code == 422
 
 
 async def test_list_pokemons_with_search_too_long_returns_422(
@@ -370,6 +553,66 @@ async def test_update_pokemon_types(client: AsyncClient) -> None:
     assert sorted(response.json()["types"]) == ["dragon", "fire"]
 
 
+async def test_update_pokemon_details(client: AsyncClient) -> None:
+    await create_pokemon(client)
+
+    response = await client.patch(
+        "/pokemons/6",
+        json={"generation": 1, "description": "Spits fire.", "stats": STATS},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["generation"] == 1
+    assert body["description"] == "Spits fire."
+    assert body["stats"] == STATS
+    assert body["height"] == 17
+
+
+async def test_update_pokemon_replaces_abilities(
+    client: AsyncClient, session_maker: async_sessionmaker
+) -> None:
+    await create_pokemon(
+        client,
+        abilities=[{"name": "blaze"}, {"name": "solar-power", "is_hidden": True}],
+    )
+
+    # "blaze" continua, mas muda de posição e passa a ser oculta.
+    response = await client.patch(
+        "/pokemons/6",
+        json={
+            "abilities": [
+                {"name": "tough-claws"},
+                {"name": "blaze", "is_hidden": True},
+            ]
+        },
+    )
+    detail = await client.get("/pokemons/6")
+
+    expected = [
+        {"name": "tough-claws", "is_hidden": False},
+        {"name": "blaze", "is_hidden": True},
+    ]
+    assert response.status_code == 200
+    assert response.json()["abilities"] == expected
+    assert detail.json()["abilities"] == expected
+
+    async with session_maker() as session:
+        links = (await session.execute(select(PokemonAbility))).scalars().all()
+    assert len(links) == 2
+
+
+async def test_update_pokemon_with_empty_abilities_clears_them(
+    client: AsyncClient,
+) -> None:
+    await create_pokemon(client, abilities=[{"name": "blaze"}])
+
+    response = await client.patch("/pokemons/6", json={"abilities": []})
+
+    assert response.status_code == 200
+    assert response.json()["abilities"] == []
+
+
 async def test_update_pokemon_with_existing_name_returns_409(client: AsyncClient) -> None:
     await create_pokemon(client)
     await create_pokemon(client, id=16, name="pidgey", types=["normal", "flying"])
@@ -398,72 +641,22 @@ async def test_delete_pokemon_returns_204_and_removes_it(client: AsyncClient) ->
     assert after_delete.status_code == 404
 
 
+async def test_delete_pokemon_removes_ability_links_but_keeps_abilities(
+    client: AsyncClient, session_maker: async_sessionmaker
+) -> None:
+    await create_pokemon(client, abilities=[{"name": "blaze"}])
+
+    response = await client.delete("/pokemons/6")
+
+    assert response.status_code == 204
+    async with session_maker() as session:
+        links = (await session.execute(select(PokemonAbility))).scalars().all()
+        abilities = (await session.execute(select(Ability))).scalars().all()
+    assert links == []
+    assert [a.name for a in abilities] == ["blaze"]
+
+
 async def test_delete_pokemon_not_found_returns_404(client: AsyncClient) -> None:
     response = await client.delete("/pokemons/999")
 
     assert response.status_code == 404
-
-
-# POST /pokemons/import/{name}
-
-
-async def test_import_pokemon_returns_201(
-    client: AsyncClient, mock_pokeapi: MockPokeAPI
-) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.path == "/api/v2/pokemon/pikachu"
-        return httpx.Response(200, json=POKEAPI_PIKACHU)
-
-    mock_pokeapi(handler)
-
-    response = await client.post("/pokemons/import/Pikachu")
-
-    assert response.status_code == 201
-    body = response.json()
-    assert body["id"] == 25
-    assert body["name"] == "pikachu"
-    assert body["types"] == ["electric"]
-
-
-async def test_import_existing_pokemon_returns_409(
-    client: AsyncClient, mock_pokeapi: MockPokeAPI
-) -> None:
-    mock_pokeapi(lambda request: httpx.Response(200, json=POKEAPI_PIKACHU))
-    await client.post("/pokemons/import/pikachu")
-
-    response = await client.post("/pokemons/import/pikachu")
-
-    assert response.status_code == 409
-
-
-async def test_import_pokemon_not_found_in_pokeapi_returns_404(
-    client: AsyncClient, mock_pokeapi: MockPokeAPI
-) -> None:
-    mock_pokeapi(lambda request: httpx.Response(404))
-
-    response = await client.post("/pokemons/import/naoexiste")
-
-    assert response.status_code == 404
-
-
-async def test_import_pokemon_when_pokeapi_returns_error_returns_503(
-    client: AsyncClient, mock_pokeapi: MockPokeAPI
-) -> None:
-    mock_pokeapi(lambda request: httpx.Response(500))
-
-    response = await client.post("/pokemons/import/pikachu")
-
-    assert response.status_code == 503
-
-
-async def test_import_pokemon_when_pokeapi_is_down_returns_503(
-    client: AsyncClient, mock_pokeapi: MockPokeAPI
-) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("PokéAPI fora do ar", request=request)
-
-    mock_pokeapi(handler)
-
-    response = await client.post("/pokemons/import/pikachu")
-
-    assert response.status_code == 503

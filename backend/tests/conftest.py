@@ -17,6 +17,7 @@ from sqlalchemy.pool import StaticPool
 from app.database import get_db
 from app.main import app
 from app.models import Base
+from app import pokeapi
 from app.routers import pokemon as pokemon_router
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -100,6 +101,6 @@ def mock_pokeapi(
             AsyncClient=fake_async_client,
             RequestError=httpx.RequestError,
         )
-        monkeypatch.setattr(pokemon_router, "httpx", fake_httpx)
+        monkeypatch.setattr(pokeapi, "httpx", fake_httpx)
 
     return install

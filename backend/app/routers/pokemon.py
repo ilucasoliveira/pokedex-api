@@ -1,8 +1,6 @@
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
-
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import selectinload
@@ -10,13 +8,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Pokemon, Type
+from app.pokeapi import (
+    PokeAPIUnavailable,
+    PokemonNotFoundInPokeAPI,
+    create_client,
+    fetch_pokemon,
+)
 from app.schemas import (
+    BatchImportResponse,
     ErrorResponse,
     PaginationInfo,
+    PokemonBatchImport,
     PokemonCreate,
     PokemonListResponse,
     PokemonResponse,
+    PokemonSummary,
     PokemonUpdate,
+)
+from app.services import (
+    apply_stats,
+    build_abilities,
+    build_types,
+    import_range,
+    save_pokemon,
 )
 from app.cache import get_cache, set_cache, delete_cache_by_pattern, delete_cache
 from app.security import get_current_user
@@ -36,33 +50,9 @@ CONFLICT: ErrorResponses = {
     }
 }
 
-
-async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
-    result = await db.execute(
-        select(Pokemon).where(
-            or_(Pokemon.name == pokemon.name, Pokemon.id == pokemon.id)
-        )
-    )
-    if result.scalars().first():
-        raise HTTPException(status_code=409, detail="Pokémon already exists.")
-
-    list_types: list[Type] = []
-    for name in pokemon.types:
-        result_type = await db.execute(select(Type).where(Type.name == name))
-        type_obj = result_type.scalars().first()
-
-        if not type_obj:
-            type_obj = Type(name=name)
-
-        list_types.append(type_obj)
-
-    new_pokemon = Pokemon(**pokemon.model_dump(exclude={"types"}), types=list_types)
-
-    db.add(new_pokemon)
-    await db.commit()
-
-    await delete_cache_by_pattern("pokemon:list:*")
-    return new_pokemon
+# A ficha completa precisa dos tipos e das habilidades já carregados, porque o
+# SQLAlchemy assíncrono não carrega relacionamentos sob demanda.
+DETAIL_OPTIONS = (selectinload(Pokemon.types), selectinload(Pokemon.abilities))
 
 
 @router.post(
@@ -73,15 +63,42 @@ async def save_pokemon(pokemon: PokemonCreate, db: AsyncSession) -> Pokemon:
     summary="Create a Pokémon",
     description=(
         "Creates a Pokémon with the given Pokédex number, name and types. "
-        "Name and types are stored in lowercase. Types that do not exist yet are "
-        "created; existing ones are reused. **Requires authentication.**"
+        "Name, types and abilities are stored in lowercase. Types and abilities that "
+        "do not exist yet are created; existing ones are reused. Only `id`, `name`, "
+        "`height`, `weight` and `types` are required. **Requires authentication.**"
     ),
     responses={**UNAUTHORIZED, **CONFLICT},
 )
 async def create_pokemon(
     pokemon: PokemonCreate, db: AsyncSession = Depends(get_db)
 ) -> Pokemon:
-    return await save_pokemon(pokemon, db)
+    new_pokemon = await save_pokemon(pokemon, db)
+    await delete_cache_by_pattern("pokemon:list:*")
+    return new_pokemon
+
+
+@router.post(
+    "/import",
+    status_code=200,
+    response_model=BatchImportResponse,
+    dependencies=[Depends(get_current_user)],
+    summary="Import a range of Pokémon from the PokéAPI",
+    description=(
+        "Imports every Pokédex number from `start` to `end` (at most 200 per call) "
+        "with the same data as the single import. Numbers already in the database "
+        "are skipped, so the same range can be sent again to retry failures. "
+        "To fill the whole Pokédex, send consecutive ranges (1-200, 201-400...). "
+        "**Requires authentication.**"
+    ),
+    responses=UNAUTHORIZED,
+)
+async def import_pokemon_batch(
+    batch: PokemonBatchImport, db: AsyncSession = Depends(get_db)
+) -> BatchImportResponse:
+    result = await import_range(db, batch.start, batch.end)
+    if result.imported:
+        await delete_cache_by_pattern("pokemon:list:*")
+    return result
 
 
 @router.post(
@@ -93,7 +110,10 @@ async def create_pokemon(
     description=(
         "Fetches a Pokémon from the public [PokéAPI](https://pokeapi.co/) by name "
         "or Pokédex number and saves it with the same rules as the create endpoint. "
-        "The request to the PokéAPI times out after 10 seconds. "
+        "Besides the basic data, it brings the official artwork, generation, "
+        "Pokédex entry, base stats, abilities and the whole evolution chain "
+        "(from `pokemon-species` and `evolution-chain`). "
+        "Each request to the PokéAPI times out after 10 seconds. "
         "**Requires authentication.**"
     ),
     responses={
@@ -117,50 +137,49 @@ async def import_pokemon(
     db: AsyncSession = Depends(get_db),
 ) -> Pokemon:
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"https://pokeapi.co/api/v2/pokemon/{name.lower()}"
-            )
-    except httpx.RequestError:
-        raise HTTPException(status_code=503, detail="PokéAPI is unavailable.")
+        async with create_client() as client:
+            pokemon_data = await fetch_pokemon(client, name)
+    except PokemonNotFoundInPokeAPI as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except PokeAPIUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
-    if response.status_code == 404:
-        raise HTTPException(status_code=404, detail="Pokémon not found in PokéAPI.")
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=503, detail="PokéAPI returned an unexpected error."
-        )
-
-    data = response.json()
-
-    pokemon_data = PokemonCreate(
-        id=data["id"],
-        name=data["name"],
-        height=data["height"],
-        weight=data["weight"],
-        types=[item["type"]["name"] for item in data["types"]],
-        sprites=data["sprites"]["front_default"],
-    )
-
-    return await save_pokemon(pokemon_data, db)
+    new_pokemon = await save_pokemon(pokemon_data, db)
+    await delete_cache_by_pattern("pokemon:list:*")
+    return new_pokemon
 
 
 @router.get(
-    "/{pokemon_id}",
+    "/{id_or_name}",
     status_code=200,
     response_model=PokemonResponse,
-    summary="Get a Pokémon by Pokédex number",
+    summary="Get a Pokémon by Pokédex number or name",
     description=(
-        "Returns a single Pokémon. Public endpoint. "
+        "Returns the full record of a Pokémon: basic data, artwork, generation, "
+        "Pokédex entry, base stats, abilities and evolution chain. "
+        "Accepts the Pokédex number (`25`, leading zeros allowed) or the name "
+        "(`pikachu`, case-insensitive). Public endpoint. "
         "Responses are cached in Redis for up to 1 hour and invalidated on every change."
     ),
     responses=NOT_FOUND,
 )
 async def read_one_pokemon(
-    pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
+    id_or_name: str = Path(
+        description="Pokédex number or name.", examples=["25", "pikachu"]
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> PokemonResponse:
+    if id_or_name.isdigit():
+        pokemon_id: int | None = int(id_or_name)
+    else:
+        # O nome só é traduzido para o número; o cache continua por número,
+        # que é a chave invalidada nas escritas.
+        pokemon_id = await db.scalar(
+            select(Pokemon.id).where(Pokemon.name == id_or_name.strip().lower())
+        )
+        if pokemon_id is None:
+            raise HTTPException(status_code=404, detail="Pokémon not found")
+
     cache_key = f"pokemon:{pokemon_id}"
     cached_pokemon = await get_cache(cache_key)
 
@@ -168,9 +187,7 @@ async def read_one_pokemon(
         return PokemonResponse.model_validate_json(cached_pokemon)
 
     result = await db.execute(
-        select(Pokemon)
-        .where(Pokemon.id == pokemon_id)
-        .options(selectinload(Pokemon.types))
+        select(Pokemon).where(Pokemon.id == pokemon_id).options(*DETAIL_OPTIONS)
     )
     pokemon = result.scalars().first()
 
@@ -191,8 +208,11 @@ async def read_one_pokemon(
     description=(
         "Returns a page of Pokémon ordered by Pokédex number, plus pagination info: "
         "the total matching the filters and the paths to the next and previous pages. "
-        "Optional filters: `search` (part of the name, case-insensitive) and `type` "
-        "(type name). Filters can be combined and are kept in the pagination links. "
+        "Each item has the fields needed for a card; the full record (stats, "
+        "abilities, evolution) comes from `GET /pokemons/{id_or_name}`. "
+        "Optional filters: `search` (part of the name, case-insensitive, or the "
+        "Pokédex number), `type` (type name) and `generation`. Filters can be "
+        "combined and are kept in the pagination links. "
         "Public endpoint. Each page is cached in Redis for up to 1 hour."
     ),
 )
@@ -206,7 +226,10 @@ async def read_pokemons(
     search: str | None = Query(
         default=None,
         max_length=50,
-        description="Part of the Pokémon name. Case-insensitive.",
+        description=(
+            "Part of the Pokémon name, case-insensitive. A number also matches "
+            "the Pokédex number (`25` or `025` finds Pikachu)."
+        ),
         examples=["char"],
     ),
     type_name: str | None = Query(
@@ -215,6 +238,12 @@ async def read_pokemons(
         max_length=50,
         description="Type name. Only Pokémon with this type are returned.",
         examples=["fire"],
+    ),
+    generation: int | None = Query(
+        default=None,
+        ge=1,
+        description="Generation in which the Pokémon was introduced.",
+        examples=[1],
     ),
     db: AsyncSession = Depends(get_db),
 ) -> PokemonListResponse:
@@ -228,6 +257,7 @@ async def read_pokemons(
     cache_key = (
         f"pokemon:list:limit={limit}:offset={offset}"
         f":search={search or ''}:type={type_name or ''}"
+        f":generation={generation or ''}"
     )
     cached_page = await get_cache(cache_key)
 
@@ -237,9 +267,16 @@ async def read_pokemons(
     filters: list[ColumnElement[bool]] = []
     if search:
         # autoescape trata % e _ digitados pelo usuário como texto, não como curinga.
-        filters.append(Pokemon.name.contains(search, autoescape=True))
+        name_matches = Pokemon.name.contains(search, autoescape=True)
+        if search.isdigit():
+            # Busca por número aceita zeros à esquerda: "025" encontra o 25.
+            filters.append(or_(Pokemon.id == int(search), name_matches))
+        else:
+            filters.append(name_matches)
     if type_name:
         filters.append(Pokemon.types.any(Type.name == type_name))
+    if generation:
+        filters.append(Pokemon.generation == generation)
 
     total = (
         await db.scalar(select(func.count()).select_from(Pokemon).where(*filters)) or 0
@@ -262,13 +299,15 @@ async def read_pokemons(
             params["search"] = search
         if type_name:
             params["type"] = type_name
+        if generation:
+            params["generation"] = generation
         return f"{router.prefix}?{urlencode(params)}"
 
     next_offset = offset + limit
     previous_offset = max(offset - limit, 0)
 
     response = PokemonListResponse(
-        data=[PokemonResponse.model_validate(p) for p in pokemons],
+        data=[PokemonSummary.model_validate(p) for p in pokemons],
         pagination=PaginationInfo(
             total=total,
             limit=limit,
@@ -290,8 +329,8 @@ async def read_pokemons(
     summary="Update a Pokémon",
     description=(
         "Partially updates a Pokémon: only the fields sent are changed. "
-        "Sending `types` replaces the whole list. The Pokédex number cannot be changed. "
-        "**Requires authentication.**"
+        "Sending `types` or `abilities` replaces the whole list. The Pokédex number "
+        "and the evolution chain cannot be changed. **Requires authentication.**"
     ),
     responses={
         **UNAUTHORIZED,
@@ -308,9 +347,7 @@ async def update_pokemon(
     db: AsyncSession = Depends(get_db),
 ) -> Pokemon:
     result = await db.execute(
-        select(Pokemon)
-        .where(Pokemon.id == pokemon_id)
-        .options(selectinload(Pokemon.types))
+        select(Pokemon).where(Pokemon.id == pokemon_id).options(*DETAIL_OPTIONS)
     )
     pokemon = result.scalars().first()
 
@@ -329,22 +366,17 @@ async def update_pokemon(
             raise HTTPException(status_code=409, detail="Pokémon name already exists.")
 
     for key, value in new_data.model_dump(
-        exclude_unset=True, exclude={"types"}, exclude_none=True
+        exclude_unset=True, exclude={"types", "abilities", "stats"}, exclude_none=True
     ).items():
         setattr(pokemon, key, value)
 
+    apply_stats(pokemon, new_data.stats)
+
     if new_data.types:
-        list_types: list[Type] = []
-        for name in new_data.types:
-            types = await db.execute(select(Type).where(Type.name == name))
-            type_obj = types.scalars().first()
+        pokemon.types = await build_types(db, new_data.types)
 
-            if not type_obj:
-                type_obj = Type(name=name)
-
-            list_types.append(type_obj)
-
-        pokemon.types = list_types
+    if new_data.abilities is not None:
+        pokemon.abilities = await build_abilities(db, new_data.abilities)
 
     await db.commit()
 
@@ -360,8 +392,9 @@ async def update_pokemon(
     dependencies=[Depends(get_current_user)],
     summary="Delete a Pokémon",
     description=(
-        "Deletes a Pokémon and its links to types. The types themselves are kept, "
-        "since other Pokémon may use them. **Requires authentication.**"
+        "Deletes a Pokémon and its links to types and abilities. The types and "
+        "abilities themselves are kept, since other Pokémon may use them. "
+        "**Requires authentication.**"
     ),
     responses={**UNAUTHORIZED, **NOT_FOUND},
 )

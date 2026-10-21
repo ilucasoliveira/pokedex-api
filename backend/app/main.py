@@ -7,7 +7,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine
-from app.models import Base
 from app.routers import auth, pokemon
 
 load_dotenv()
@@ -24,8 +23,8 @@ def parse_cors_origins(value: str) -> list[str]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # As tabelas vêm das migrações do Alembic (python -m app.migrate), que rodam
+    # antes da API subir no Dockerfile e no docker-compose.
     yield
     await engine.dispose()
 

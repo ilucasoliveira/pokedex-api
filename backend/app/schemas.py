@@ -1,8 +1,71 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import Type
+
+
+class PokemonStats(BaseModel):
+    hp: int = Field(ge=0, description="Base HP.")
+    attack: int = Field(ge=0, description="Base Attack.")
+    defense: int = Field(ge=0, description="Base Defense.")
+    special_attack: int = Field(ge=0, description="Base Special Attack.")
+    special_defense: int = Field(ge=0, description="Base Special Defense.")
+    speed: int = Field(ge=0, description="Base Speed.")
+
+
+class PokemonAbilityItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str = Field(
+        min_length=1, max_length=50, description="Ability name, in lowercase."
+    )
+    is_hidden: bool = Field(
+        default=False, description="Whether this is the Pokémon's hidden ability."
+    )
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def padronizar_nome(cls, value: str) -> str:
+        return value.lower()
+
+
+class EvolutionNode(BaseModel):
+    id: int = Field(description="Pokédex number of the species.")
+    name: str = Field(description="Species name, in lowercase.")
+    trigger: str | None = Field(
+        default=None,
+        description=(
+            "How this stage is reached from the previous one, as named by the "
+            "PokéAPI (`level-up`, `use-item`, `trade`...). Null on the first stage."
+        ),
+    )
+    conditions: dict[str, str | int | bool] = Field(
+        default_factory=dict,
+        description=(
+            "Extra requirements for the evolution, as named by the PokéAPI, "
+            'e.g. `{"min_level": 16}` or `{"item": "fire-stone"}`.'
+        ),
+    )
+    sprites: str | None = Field(default=None, description="URL of the front sprite.")
+    artwork: str | None = Field(
+        default=None, description="URL of the official artwork."
+    )
+    evolves_to: list["EvolutionNode"] = Field(
+        default_factory=list,
+        description="Next stages. More than one item means the chain branches.",
+    )
+
+
+def validar_habilidades_unicas(
+    value: list[PokemonAbilityItem] | None,
+) -> list[PokemonAbilityItem] | None:
+    if value is None:
+        return value
+    names = [item.name for item in value]
+    if len(names) != len(set(names)):
+        raise ValueError("Abilities must not repeat.")
+    return value
 
 
 class PokemonCreate(BaseModel):
@@ -16,6 +79,11 @@ class PokemonCreate(BaseModel):
                     "weight": 905,
                     "types": ["Fire", "Flying"],
                     "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png",
+                    "generation": 1,
+                    "abilities": [
+                        {"name": "blaze", "is_hidden": False},
+                        {"name": "solar-power", "is_hidden": True},
+                    ],
                 }
             ]
         }
@@ -27,7 +95,7 @@ class PokemonCreate(BaseModel):
     )
     name: str = Field(
         min_length=2,
-        max_length=20,
+        max_length=50,
         description="Pokémon name. Stored in lowercase.",
     )
     height: int = Field(
@@ -43,9 +111,30 @@ class PokemonCreate(BaseModel):
         max_length=2,
         description="One or two type names. Stored in lowercase; existing types are reused.",
     )
-    sprites: str = Field(
+    sprites: str | None = Field(
+        default=None,
         max_length=255,
         description="URL of the Pokémon's front sprite image.",
+    )
+    artwork: str | None = Field(
+        default=None,
+        max_length=255,
+        description="URL of the official artwork (high resolution).",
+    )
+    generation: int | None = Field(
+        default=None, ge=1, description="Generation in which the Pokémon was introduced."
+    )
+    description: str | None = Field(
+        default=None, description="Pokédex entry (flavor text), in English."
+    )
+    stats: PokemonStats | None = Field(default=None, description="Base stats.")
+    abilities: list[PokemonAbilityItem] = Field(
+        default_factory=list,
+        description="Abilities in display order. Existing abilities are reused.",
+    )
+    evolution_chain: EvolutionNode | None = Field(
+        default=None,
+        description="Whole evolution chain, starting from the first stage.",
     )
 
     @field_validator("types", mode="after")
@@ -57,6 +146,14 @@ class PokemonCreate(BaseModel):
     @classmethod
     def padronizar_nome(cls, value: str) -> str:
         return value.lower()
+
+    @field_validator("abilities", mode="after")
+    @classmethod
+    def habilidades_unicas(
+        cls, value: list[PokemonAbilityItem]
+    ) -> list[PokemonAbilityItem]:
+        validar_habilidades_unicas(value)
+        return value
 
 
 class PokemonUpdate(BaseModel):
@@ -72,7 +169,7 @@ class PokemonUpdate(BaseModel):
     name: str | None = Field(
         default=None,
         min_length=2,
-        max_length=20,
+        max_length=50,
         description="New name. Must not belong to another Pokémon.",
     )
     height: int | None = Field(
@@ -90,6 +187,18 @@ class PokemonUpdate(BaseModel):
     sprites: str | None = Field(
         default=None, max_length=255, description="New sprite URL."
     )
+    artwork: str | None = Field(
+        default=None, max_length=255, description="New official artwork URL."
+    )
+    generation: int | None = Field(default=None, ge=1, description="New generation.")
+    description: str | None = Field(default=None, description="New Pokédex entry.")
+    stats: PokemonStats | None = Field(
+        default=None, description="New base stats. All six are required."
+    )
+    abilities: list[PokemonAbilityItem] | None = Field(
+        default=None,
+        description="New list of abilities. Replaces the current list entirely.",
+    )
 
     @field_validator("types")
     @classmethod
@@ -105,8 +214,16 @@ class PokemonUpdate(BaseModel):
             return value
         return value.lower()
 
+    @field_validator("abilities", mode="after")
+    @classmethod
+    def habilidades_unicas(
+        cls, value: list[PokemonAbilityItem] | None
+    ) -> list[PokemonAbilityItem] | None:
+        return validar_habilidades_unicas(value)
 
-class PokemonResponse(BaseModel):
+
+class PokemonSummary(BaseModel):
+    # Campos da listagem: o suficiente para montar um card.
     model_config = ConfigDict(
         from_attributes=True,
         json_schema_extra={
@@ -118,6 +235,8 @@ class PokemonResponse(BaseModel):
                     "weight": 905,
                     "types": ["fire", "flying"],
                     "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png",
+                    "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png",
+                    "generation": 1,
                 }
             ]
         },
@@ -128,12 +247,86 @@ class PokemonResponse(BaseModel):
     height: int = Field(description="Height in decimetres.")
     weight: int = Field(description="Weight in hectograms.")
     types: list[str] = Field(description="Type names, in lowercase.")
-    sprites: str = Field(description="URL of the front sprite image.")
+    sprites: str | None = Field(
+        description="URL of the front sprite image, or null if unavailable."
+    )
+    artwork: str | None = Field(
+        description="URL of the official artwork, or null if unavailable."
+    )
+    generation: int | None = Field(
+        description="Generation in which the Pokémon was introduced, or null if unknown."
+    )
 
     @field_validator("types", mode="before")
     @classmethod
     def extrai_nomes_dos_tipos(cls, value: list[Any]) -> list[str]:
         return [i.name if isinstance(i, Type) else i for i in value]
+
+
+class PokemonResponse(PokemonSummary):
+    # Ficha completa, usada no detalhe e nas respostas de escrita.
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 25,
+                    "name": "pikachu",
+                    "height": 4,
+                    "weight": 60,
+                    "types": ["electric"],
+                    "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+                    "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+                    "generation": 1,
+                    "description": "When it is angered, it immediately discharges the energy stored in the pouches in its cheeks.",
+                    "stats": {
+                        "hp": 35,
+                        "attack": 55,
+                        "defense": 40,
+                        "special_attack": 50,
+                        "special_defense": 50,
+                        "speed": 90,
+                    },
+                    "abilities": [
+                        {"name": "static", "is_hidden": False},
+                        {"name": "lightning-rod", "is_hidden": True},
+                    ],
+                    "evolution_chain": {
+                        "id": 172,
+                        "name": "pichu",
+                        "trigger": None,
+                        "conditions": {},
+                        "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/172.png",
+                        "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/172.png",
+                        "evolves_to": [
+                            {
+                                "id": 25,
+                                "name": "pikachu",
+                                "trigger": "level-up",
+                                "conditions": {"min_happiness": 220},
+                                "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+                                "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+                                "evolves_to": [],
+                            }
+                        ],
+                    },
+                }
+            ]
+        },
+    )
+
+    description: str | None = Field(
+        description="Pokédex entry (flavor text), in English, or null if unavailable."
+    )
+    stats: PokemonStats | None = Field(
+        description="Base stats, or null if unavailable."
+    )
+    abilities: list[PokemonAbilityItem] = Field(
+        description="Abilities in display order. Hidden abilities have `is_hidden` true."
+    )
+    evolution_chain: EvolutionNode | None = Field(
+        description="Whole evolution chain from the first stage, or null if unavailable."
+    )
 
 
 class PaginationInfo(BaseModel):
@@ -161,6 +354,8 @@ class PokemonListResponse(BaseModel):
                             "weight": 69,
                             "types": ["grass", "poison"],
                             "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
+                            "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
+                            "generation": 1,
                         }
                     ],
                     "pagination": {
@@ -175,8 +370,55 @@ class PokemonListResponse(BaseModel):
         }
     )
 
-    data: list[PokemonResponse] = Field(description="Pokémon in this page.")
+    data: list[PokemonSummary] = Field(description="Pokémon in this page.")
     pagination: PaginationInfo
+
+
+MAX_BATCH_IMPORT_SIZE = 200
+
+
+class PokemonBatchImport(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{"start": 1, "end": 151}]})
+
+    start: int = Field(ge=1, description="First Pokédex number to import.")
+    end: int = Field(ge=1, description="Last Pokédex number to import (inclusive).")
+
+    @model_validator(mode="after")
+    def validar_intervalo(self) -> "PokemonBatchImport":
+        if self.end < self.start:
+            raise ValueError("end must be greater than or equal to start.")
+        if self.end - self.start + 1 > MAX_BATCH_IMPORT_SIZE:
+            raise ValueError(
+                f"A batch can import at most {MAX_BATCH_IMPORT_SIZE} Pokémon."
+            )
+        return self
+
+
+class BatchImportFailure(BaseModel):
+    id: int = Field(description="Pokédex number that could not be imported.")
+    detail: str = Field(description="Reason for the failure.")
+
+
+class BatchImportResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "imported": [2, 3],
+                    "skipped": [1],
+                    "failed": [{"id": 4, "detail": "PokéAPI is unavailable."}],
+                }
+            ]
+        }
+    )
+
+    imported: list[int] = Field(description="Pokédex numbers imported now.")
+    skipped: list[int] = Field(
+        description="Pokédex numbers skipped because they were already in the database."
+    )
+    failed: list[BatchImportFailure] = Field(
+        description="Pokédex numbers that failed. Running the same range again retries them."
+    )
 
 
 class ErrorResponse(BaseModel):

@@ -46,15 +46,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Aplica as migrações antes de subir a API, como no Dockerfile.
     command:
       [
-        "uvicorn",
-        "app.main:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-        "--reload",
+        "sh",
+        "-c",
+        "python -m app.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
       ]
 
 volumes:
