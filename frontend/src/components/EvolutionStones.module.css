@@ -1,11 +1,13 @@
-/* Pedras fixas no canto inferior direito da tela, acima do conteúdo e abaixo do header. */
+/* Pedras fixas no pé da tela, alinhadas à borda direita do conteúdo (dos cards), e não
+   ao canto da janela. Com duas pedras (Gloom), a segunda fica em cima da primeira. */
 .dock {
   position: fixed;
-  right: max(var(--page-gutter), env(safe-area-inset-right));
+  right: calc(max((100vw - var(--max-container)) / 2, 0px) + var(--page-gutter) + var(--space-24));
   bottom: max(var(--space-24), env(safe-area-inset-bottom));
   z-index: 9;
   display: flex;
-  gap: var(--space-8);
+  flex-direction: column-reverse;
+  gap: var(--space-12);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -63,8 +65,6 @@
     transform: translateY(-6px);
   }
 }
-
-
 
 .ghost {
   position: fixed;

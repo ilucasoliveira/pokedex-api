@@ -68,13 +68,13 @@ describe('rodapé', () => {
     const year = new Date().getFullYear()
 
     const footer = screen.getByRole('contentinfo')
-    expect(footer).toHaveTextContent(`© ${year} Rota151. Desenvolvido por Lucas de Oliveira.`)
+    expect(footer).toHaveTextContent(`© ${year} Rota151 · Desenvolvido por Lucas de Oliveira`)
     expect(within(footer).getByRole('link', { name: 'Lucas de Oliveira' })).toHaveAttribute(
       'href',
       'https://github.com/ilucasoliveira',
     )
 
     await userEvent.click(screen.getByRole('button', { name: 'Switch to English' }))
-    expect(screen.getByRole('contentinfo')).toHaveTextContent(`© ${year} Rota151. Built by Lucas de Oliveira.`)
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(`© ${year} Rota151 · Built by Lucas de Oliveira`)
   })
 })

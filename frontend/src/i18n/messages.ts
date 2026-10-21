@@ -20,10 +20,9 @@ export const pt = {
   'theme.toLight': 'Ativar modo claro',
   'language.switch': 'Switch to English',
   'footer.data': 'Dados e imagens da',
-  'footer.servedBy': ', servidos pela',
   'footer.api': 'API da Rota151',
-  'footer.code': '. Código no',
-  'footer.credits': '© {year} Rota151. Desenvolvido por',
+  'footer.code': 'Código no',
+  'footer.credits': '© {year} Rota151 · Desenvolvido por',
   'footer.disclaimer':
     'Projeto de fã, sem fins lucrativos e sem afiliação com Nintendo, Game Freak ou The Pokémon Company. Pokémon e os nomes relacionados são marcas de seus respectivos donos.',
 
@@ -264,10 +263,9 @@ export const en: Messages = {
   'theme.toLight': 'Switch to light mode',
   'language.switch': 'Mudar para português',
   'footer.data': 'Data and images from',
-  'footer.servedBy': ', served by the',
   'footer.api': 'Rota151 API',
-  'footer.code': '. Code on',
-  'footer.credits': '© {year} Rota151. Built by',
+  'footer.code': 'Code on',
+  'footer.credits': '© {year} Rota151 · Built by',
   'footer.disclaimer':
     'Non-profit fan project, not affiliated with Nintendo, Game Freak or The Pokémon Company. Pokémon and related names are trademarks of their respective owners.',
 

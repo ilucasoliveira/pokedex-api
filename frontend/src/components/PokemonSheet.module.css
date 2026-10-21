@@ -37,8 +37,11 @@
     color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 28%, var(--color-tint-base));
 }
 
+/* Só a imagem do Pokémon (ou o marcador de "imagem indisponível", que tem role=img).
+   Antes era ".artwork > div", e isso prendia a camada de efeitos da evolução em
+   240 px no canto: o círculo saía do centro e o clarão não cobria a moldura. */
 .artwork > img,
-.artwork > div {
+.artwork > [role="img"] {
   width: 220px !important;
   height: 220px !important;
   filter: drop-shadow(0 8px 12px rgba(31, 31, 29, 0.18));
@@ -93,7 +96,7 @@
 /* Evoluindo: o Pokémon vira uma silhueta de luz que pulsa cada vez mais rápido,
    como nos jogos. Chegando: o evoluído surge da luz. */
 .evolvingArt > img,
-.evolvingArt > div:not([aria-hidden]) {
+.evolvingArt > [role="img"] {
   animation: silhouette 2.4s ease-in forwards;
 }
 
@@ -356,7 +359,7 @@
   }
 
   .sheet:not(.panel) .artwork > img,
-  .sheet:not(.panel) .artwork > div {
+  .sheet:not(.panel) .artwork > [role="img"] {
     width: 240px !important;
     height: 240px !important;
   }

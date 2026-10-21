@@ -2,6 +2,8 @@
    espiral, anel de luz pulsando, explosão em estrela e clarão. Com movimento
    reduzido, a regra do kit corta as animações e sobra só o clarão final. */
 
+/* Cobre a moldura inteira. Os círculos usam cqmin (o menor lado da moldura), então
+   ficam redondos e no centro do Pokémon também no celular, onde a moldura é retangular. */
 .fx {
   position: absolute;
   inset: 0;
@@ -11,6 +13,7 @@
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
+  container-type: size;
 }
 
 .fx > * {
@@ -18,14 +21,14 @@
 }
 
 .glow {
-  width: 90%;
+  width: 90cqmin;
   aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(127, 216, 255, 0.7) 35%, rgba(79, 176, 234, 0) 70%);
 }
 
 .ring {
-  width: 62%;
+  width: 62cqmin;
   aspect-ratio: 1;
   border: 5px solid #4fb0ea;
   border-radius: 50%;
@@ -37,7 +40,7 @@
 
 .orbit {
   position: relative;
-  width: 86%;
+  width: 86cqmin;
   aspect-ratio: 1;
 }
 
@@ -69,7 +72,7 @@
 }
 
 .burst {
-  width: 100%;
+  width: 100cqmin;
   aspect-ratio: 1;
   fill: #ffffff;
   filter: drop-shadow(0 0 10px #7fd8ff) drop-shadow(0 0 22px #4fb0ea);
