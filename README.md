@@ -22,7 +22,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 - **Cache com Redis** nas leituras, invalidado a cada alteração. Se o Redis cair, a API continua funcionando direto pelo banco
 - **Autenticação JWT**: leitura pública, criação/importação/edição/exclusão exigem token
 - **Documentação interativa** em `/docs` (Swagger) com descrições, exemplos e códigos de erro
-- **93 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
+- **94 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
 - **Type hints** em todas as funções, conferidas com mypy
 - **Deploy automático** no Render pelo GitHub Actions, só depois dos testes passarem
 
@@ -479,15 +479,18 @@ A API está publicada no [Render](https://render.com/) (plano gratuito):
 - **Documentação:** [https://pokedex-api-cb8d.onrender.com/docs](https://pokedex-api-cb8d.onrender.com/docs)
 - **Health check:** [https://pokedex-api-cb8d.onrender.com/health](https://pokedex-api-cb8d.onrender.com/health)
 
-A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `backend/Dockerfile`, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório. A `CORS_ORIGINS` fica em branco no Blueprint e recebe o endereço do front-end publicado em **Environment**, no painel do serviço.
+A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o serviço da API a partir do `backend/Dockerfile`, o front-end como site estático, um PostgreSQL e um Redis (Key Value), todos gratuitos e na mesma região. As variáveis de ambiente são ligadas automaticamente: `DATABASE_URL` vem do banco, `REDIS_URL` do Redis e a `SECRET_KEY` é gerada pelo próprio Render. Nenhum segredo fica no repositório. A `CORS_ORIGINS` fica em branco no Blueprint e recebe o endereço do front-end publicado em **Environment**, no painel do serviço (em branco, vale o padrão `http://localhost:5173`).
 
-O deploy automático do Render fica **desligado** de propósito: quem dispara o deploy é o GitHub Actions, e só depois que os testes, o build e a publicação da imagem passam.
+O deploy automático da API fica **desligado** de propósito: quem dispara o deploy é o GitHub Actions, e só depois que os testes, o build e a publicação da imagem passam.
+
+O front-end (`rota151`) é um site estático: o Render roda `npm ci && npm run build` em `frontend/` e serve o `dist/` por CDN. Ele publica sozinho a cada push na `main` que mexa em `frontend/`, mas só depois que os checks do GitHub Actions passam (`autoDeployTrigger: checksPass`). Qualquer caminho sem arquivo (ex.: `/pokemon/25`) recebe o `index.html`, e o React Router resolve a rota; os arquivos de `/assets`, que têm hash no nome, ficam em cache por um ano.
 
 **Para reproduzir em outra conta do Render:**
 
-1. No Render, **New > Blueprint** e selecione este repositório. O Render lê o `render.yaml` e cria os três serviços
+1. No Render, **New > Blueprint** e selecione este repositório. O Render lê o `render.yaml` e cria os quatro serviços
 2. No serviço `pokedex-api`, **Settings > Deploy Hook**, copie a URL
 3. No GitHub, **Settings > Secrets and variables > Actions > New repository secret**, com o nome `RENDER_DEPLOY_HOOK_URL` e a URL copiada como valor
+4. Copie o endereço do serviço `rota151` e coloque em `CORS_ORIGINS` da `pokedex-api` (ex.: `https://rota151.onrender.com,http://localhost:5173`). Se a API não estiver em `pokedex-api-cb8d.onrender.com`, ajuste também a `VITE_API_URL` do `rota151` no `render.yaml`
 
 ## CI/CD
 
@@ -495,7 +498,7 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub
 
 | Job               | Quando roda                        | O que faz                                                                                 |
 | ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 93 testes                      |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 94 testes                      |
 | **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
 | **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
 | **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |

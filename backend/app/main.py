@@ -15,10 +15,15 @@ load_dotenv()
 DEFAULT_CORS_ORIGINS = "http://localhost:5173"
 
 
-def parse_cors_origins(value: str) -> list[str]:
+def parse_cors_origins(value: str | None) -> list[str]:
     # Lista separada por vírgula. Ignora espaços, itens vazios e a barra final,
     # já que o navegador envia a origem sem barra (https://site.com).
-    return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
+    origins = [
+        origin.strip().rstrip("/") for origin in (value or "").split(",") if origin.strip()
+    ]
+    # Variável ausente ou em branco (o Render pode criá-la vazia) vale o padrão,
+    # e não "nenhuma origem liberada".
+    return origins or [DEFAULT_CORS_ORIGINS]
 
 
 @asynccontextmanager
@@ -74,7 +79,7 @@ app = FastAPI(
 # O token vai no header Authorization, não em cookie, então não precisamos de credentials.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=parse_cors_origins(os.getenv("CORS_ORIGINS", DEFAULT_CORS_ORIGINS)),
+    allow_origins=parse_cors_origins(os.getenv("CORS_ORIGINS")),
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )

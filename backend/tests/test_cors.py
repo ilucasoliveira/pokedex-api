@@ -62,3 +62,9 @@ def test_parse_cors_origins_ignores_spaces_empty_items_and_trailing_slash() -> N
         "http://localhost:5173",
         "https://rota151.example",
     ]
+
+
+def test_parse_cors_origins_uses_default_when_missing_or_blank() -> None:
+    assert parse_cors_origins(None) == ["http://localhost:5173"]
+    assert parse_cors_origins("") == ["http://localhost:5173"]
+    assert parse_cors_origins(" , ") == ["http://localhost:5173"]

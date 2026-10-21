@@ -83,9 +83,14 @@ src/
 - **Acessibilidade**: link "Pular para o conteúdo", foco visível com o anel do kit, `<select>` nativo nos filtros, menu mobile fechando com Escape e devolvendo o foco, contagem anunciada com `role="status"`, foco levado ao título dos resultados ao trocar de página, alvos de pelo menos 44 px e `prefers-reduced-motion` respeitado (regra do kit)
 - **Busca com debounce de 300 ms**: o Enter busca na hora, digitar não enche o histórico do navegador (a URL é substituída), e buscas antigas são canceladas pelo TanStack Query
 
+## Deploy
+
+Site estático no Render, descrito no [`render.yaml`](../render.yaml) da raiz (serviço `rota151`): build com `npm ci && npm run build`, publicação do `dist/` e `VITE_API_URL` apontando para a API publicada. O Render publica sozinho quando um push na `main` mexe em `frontend/` e os checks do CI passam. Como é uma SPA, qualquer caminho sem arquivo recebe o `index.html`.
+
+O endereço do site precisa estar na `CORS_ORIGINS` da API, senão o navegador bloqueia as chamadas.
+
 ## Ainda não feito
 
 - Favoritos (opcional no guia)
 - Painel lateral de detalhe no desktop (o guia sugere; hoje o detalhe abre em página própria)
 - Ordenação além do número
-- Deploy do front

@@ -1,6 +1,8 @@
-# Blueprint do Render: cria a API, o PostgreSQL e o Redis (Key Value) de uma vez.
-# O deploy automático do Render fica desligado: quem dispara o deploy é o
+# Blueprint do Render: cria a API, o front-end (site estático), o PostgreSQL e o
+# Redis (Key Value) de uma vez.
+# API: o deploy automático do Render fica desligado; quem dispara o deploy é o
 # GitHub Actions, depois que os testes passam (job "deploy" do ci.yml).
+# Front-end: o Render publica sozinho, mas só quando os checks do CI passam.
 
 services:
   - type: web
@@ -34,6 +36,37 @@ services:
       # só libera o Vite local (http://localhost:5173).
       - key: CORS_ORIGINS
         sync: false
+
+  # Front-end Rota151: site estático (gratuito, servido por CDN). Os caminhos
+  # abaixo são relativos ao rootDir; mudanças fora de frontend/ não geram build.
+  - type: web
+    name: rota151
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    # Publica só depois que o CI (lint, testes e build do front) passar.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: VITE_API_URL
+        value: https://pokedex-api-cb8d.onrender.com
+    routes:
+      # SPA: qualquer caminho sem arquivo (ex.: /pokemon/25) recebe o index.html,
+      # e o React Router resolve a rota. Arquivos existentes não são afetados.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # Arquivos do build têm hash no nome: podem ficar em cache para sempre.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
 
   - type: keyvalue
     name: pokedex-cache
