@@ -1,20 +1,14 @@
-/* Pedras no canto inferior direito da arte, saindo um pouco da moldura, como no conceito. */
+/* Pedras fixas no canto inferior direito da tela, acima do conteúdo e abaixo do header. */
 .dock {
-  position: absolute;
-  right: -10px;
-  bottom: -14px;
-  z-index: 2;
+  position: fixed;
+  right: max(var(--page-gutter), env(safe-area-inset-right));
+  bottom: max(var(--space-24), env(safe-area-inset-bottom));
+  z-index: 9;
   display: flex;
   gap: var(--space-8);
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-/* Com mais de uma pedra (Gloom), ficam dentro da moldura, cada uma com o rótulo do resultado. */
-.dockMany {
-  right: 6px;
-  bottom: 6px;
 }
 
 .item {
@@ -70,34 +64,7 @@
   }
 }
 
-.target {
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
 
-/* Balão de dica no canto superior esquerdo (o direito é do botão shiny). */
-.hint {
-  position: absolute;
-  top: var(--space-8);
-  left: var(--space-8);
-  z-index: 2;
-  max-width: calc(100% - 110px);
-  padding: 6px 10px;
-  border: 1px solid var(--color-mustard);
-  border-radius: var(--radius-button);
-  background: var(--color-highlight);
-  color: var(--color-ink);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
-  box-shadow: var(--shadow-card);
-  pointer-events: none;
-}
 
 .ghost {
   position: fixed;

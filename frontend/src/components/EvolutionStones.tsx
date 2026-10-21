@@ -1,4 +1,5 @@
 import { useState, type MouseEvent, type PointerEvent, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 
 import { t } from '../i18n'
 import { formatName } from '../utils/format'
@@ -43,9 +44,11 @@ function genderNote(evolution: StoneEvolution): string | null {
 }
 
 /**
- * Pedras flutuando no canto da arte. Arrastar e soltar sobre o Pokémon evolui;
- * clicar (ou Enter/Espaço no teclado) também, para quem não consegue arrastar.
- * Usa Pointer Events, que funcionam igual com mouse, caneta e toque.
+ * Easter egg: a pedra de evolução flutua no canto inferior direito da tela, sem
+ * explicação. Arrastar e soltar sobre o Pokémon evolui; clicar (ou Enter/Espaço
+ * no teclado) também, para quem não consegue arrastar. Usa Pointer Events, que
+ * funcionam igual com mouse, caneta e toque. Fica num portal no <body>: assim é
+ * fixa na tela e não herda os estilos da arte (que forçavam a pedra a 240 px).
  */
 export function EvolutionStones({ evolutions, name, dropZoneRef, onDragStateChange, onEvolve }: EvolutionStonesProps) {
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -53,8 +56,13 @@ export function EvolutionStones({ evolutions, name, dropZoneRef, onDragStateChan
   function handlePointerDown(event: PointerEvent<HTMLButtonElement>, evolution: StoneEvolution) {
     if (event.button !== 0) return
     event.preventDefault()
-    // Continua recebendo os eventos mesmo quando o ponteiro sai do botão.
-    event.currentTarget.setPointerCapture?.(event.pointerId)
+    // Continua recebendo os eventos mesmo quando o ponteiro sai do botão. Se o
+    // ponteiro já não estiver ativo, o navegador lança erro: o arraste segue sem captura.
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    } catch {
+      // Sem captura, os eventos ainda chegam enquanto o ponteiro está sobre a página.
+    }
     setDrag({
       evolution,
       startX: event.clientX,
@@ -96,17 +104,9 @@ export function EvolutionStones({ evolutions, name, dropZoneRef, onDragStateChan
     if (event.detail === 0) onEvolve(evolution)
   }
 
-  const hint =
-    evolutions.length === 1
-      ? t('stone.hintOne', { stone: formatName(evolutions[0].stone), name })
-      : t('stone.hintMany', { name })
-
-  return (
+  return createPortal(
     <>
-      <p className={styles.hint} id="dica-pedra">
-        {hint}
-      </p>
-      <ul className={evolutions.length > 1 ? `${styles.dock} ${styles.dockMany}` : styles.dock}>
+      <ul className={styles.dock}>
         {evolutions.map((evolution) => {
           const stoneName = formatName(evolution.stone)
           const targetName = formatName(evolution.target.name)
@@ -118,8 +118,9 @@ export function EvolutionStones({ evolutions, name, dropZoneRef, onDragStateChan
                 type="button"
                 className={dragging ? `${styles.stone} ${styles.lifted}` : styles.stone}
                 aria-label={t('stone.use', { stone: stoneName, name, target: targetName }) + (note ? ` (${note})` : '')}
-                aria-describedby="dica-pedra"
-                title={`${stoneName} → ${targetName}${note ? ` (${note})` : ''}`}
+                // O leitor de tela recebe a descrição completa; ao passar o mouse, só o nome
+                // da pedra (o resultado da evolução é surpresa).
+                title={stoneName}
                 onPointerDown={(event) => handlePointerDown(event, evolution)}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
@@ -128,11 +129,6 @@ export function EvolutionStones({ evolutions, name, dropZoneRef, onDragStateChan
               >
                 <img src={stoneSprite(evolution.stone)} alt="" width={30} height={30} draggable={false} />
               </button>
-              {evolutions.length > 1 && (
-                <span className={styles.target} aria-hidden="true">
-                  {t('stone.target', { target: targetName })}
-                </span>
-              )}
             </li>
           )
         })}
@@ -148,6 +144,7 @@ export function EvolutionStones({ evolutions, name, dropZoneRef, onDragStateChan
           style={{ left: drag.x, top: drag.y }}
         />
       )}
-    </>
+    </>,
+    document.body,
   )
 }

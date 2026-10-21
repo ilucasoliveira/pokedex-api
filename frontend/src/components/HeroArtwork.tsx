@@ -7,6 +7,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { t } from '../i18n'
 import { fetchPokemon } from '../services/pokemonApi'
 import type { Pokemon } from '../services/types'
+import { playEvolvedFanfare, playEvolvingTheme, stopEvolutionSound } from '../utils/evolutionSound'
 import { stoneEvolutions, type StoneEvolution } from '../utils/stoneEvolution'
 import { EvolutionFx } from './EvolutionFx'
 import { EvolutionStones } from './EvolutionStones'
@@ -61,6 +62,7 @@ export function HeroArtwork({ pokemon, name, interactive }: HeroArtworkProps) {
   function evolve(evolution: StoneEvolution) {
     if (evolving) return
     setEvolving(evolution)
+    playEvolvingTheme(reducedMotion ? EVOLVE_REDUCED_MS : EVOLVE_MS)
     // Enquanto a animação roda, a ficha e a arte do evoluído já vão sendo baixadas.
     const id = String(evolution.target.id)
     void queryClient.prefetchQuery({ queryKey: ['pokemon', id], queryFn: ({ signal }) => fetchPokemon(id, signal) })
@@ -84,6 +86,7 @@ export function HeroArtwork({ pokemon, name, interactive }: HeroArtworkProps) {
   // (para recarregar a página ou navegar não repetir a animação).
   useEffect(() => {
     if (!arrivedFrom) return
+    playEvolvedFanfare()
     const fxTimer = window.setTimeout(() => setArrivingFx(false), ARRIVE_FX_MS)
     const bannerTimer = window.setTimeout(() => {
       setArrivalBanner(false)
@@ -99,6 +102,9 @@ export function HeroArtwork({ pokemon, name, interactive }: HeroArtworkProps) {
     }
     // As dependências só mudam depois do replace, quando os timers já dispararam.
   }, [arrivedFrom, location.pathname, location.search, navigate, navigationState.from])
+
+  // Saiu da página no meio da evolução: a música para junto.
+  useEffect(() => () => stopEvolutionSound(), [])
 
   const classes = [
     styles.artwork,

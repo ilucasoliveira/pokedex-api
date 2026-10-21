@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockApi, PIKACHU, renderRoute, summary } from '../test/render'
 import type { Pokemon } from '../services/types'
 
+// A evolução (0,4 s com movimento reduzido) mais a troca de página passam do limite
+// padrão de 1 s quando a máquina está ocupada (CI). Folga para não ficar instável.
+const WAIT = { timeout: 4000 }
+
 const RAICHU: Pokemon = {
   ...PIKACHU,
   ...summary(26, 'raichu', ['electric']),
@@ -37,12 +41,17 @@ afterEach(() => {
 })
 
 describe('evolução por pedra na ficha', () => {
-  it('mostra a pedra com a dica de arrastar', async () => {
+  it('mostra a pedra como easter egg: sem dica na tela, fixa no canto', async () => {
     mockEvolutionApi()
     renderRoute('/pokemon/25')
 
+    // O leitor de tela recebe a descrição completa; quem vê, só a pedra.
     const stone = await screen.findByRole('button', { name: 'Usar Thunder Stone em Pikachu: evolui para Raichu' })
-    expect(stone).toHaveAccessibleDescription('Arraste a Thunder Stone até Pikachu para evoluir')
+    expect(stone).toHaveAttribute('title', 'Thunder Stone')
+    expect(screen.queryByText(/Arraste/)).not.toBeInTheDocument()
+    // Fica fora da arte (portal no <body>), para ser fixa no canto da tela.
+    const artwork = screen.getByRole('img', { name: 'Arte de Pikachu' }).parentElement!
+    expect(artwork).not.toContainElement(stone)
   })
 
   it('pelo teclado, Enter na pedra evolui e abre a ficha do Raichu com o aviso', async () => {
@@ -54,8 +63,8 @@ describe('evolução por pedra na ficha', () => {
     await userEvent.keyboard('{Enter}')
 
     expect(document.body).toHaveTextContent('Pikachu está evoluindo…')
-    await waitFor(() => expect(router.state.location.pathname).toBe('/pokemon/26'))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Raichu' })).toBeInTheDocument()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/pokemon/26'), WAIT)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Raichu' }, WAIT)).toBeInTheDocument()
     // Balão visível sobre a arte (o mesmo texto também é anunciado ao leitor de tela).
     expect(screen.getByText('Parabéns!').parentElement).toHaveTextContent('Parabéns! Pikachu evoluiu para Raichu!')
     // O Raichu não evolui mais: nada de pedra.
@@ -82,7 +91,7 @@ describe('evolução por pedra na ficha', () => {
     expect(artwork.className).toContain('dropOver')
     fireEvent.pointerUp(stone, { clientX: 100, clientY: 100, pointerId: 1 })
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/pokemon/26'))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/pokemon/26'), WAIT)
   })
 
   it('o painel lateral não tem pedra (só a ficha em página própria)', async () => {
