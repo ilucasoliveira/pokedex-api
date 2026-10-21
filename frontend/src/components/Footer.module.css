@@ -13,6 +13,11 @@
   gap: var(--space-8);
 }
 
+.credits {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
 .disclaimer {
   font-size: 13px;
 }
