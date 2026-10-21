@@ -1,0 +1,37 @@
+/* Desenho de 20 px, área de toque de 44 px, como pede o guia. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--min-touch-target);
+  height: var(--min-touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-muted-text);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.button:hover {
+  color: var(--color-red-accessible);
+  background: rgba(213, 78, 58, 0.08);
+}
+
+.active {
+  color: var(--color-red-accessible);
+}
+
+.active svg {
+  animation: pop 220ms ease;
+}
+
+@keyframes pop {
+  50% {
+    transform: scale(1.25);
+  }
+}

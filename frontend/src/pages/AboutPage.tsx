@@ -27,6 +27,17 @@ export function AboutPage() {
         Nomes de habilidades e itens também ficam no original.
       </p>
 
+      <h2 className={styles.subtitle}>Sua jornada</h2>
+      <p>
+        Cada ficha que você abre entra para a sua Pokédex, e o coração guarda os favoritos. Tudo
+        isso fica salvo só neste navegador: não há conta, cadastro nem envio para o servidor. O
+        botão “Recomeçar”, na página inicial, apaga o progresso.
+      </p>
+      <p>
+        A tabela de fraquezas segue as regras dos jogos a partir da Geração VI e não considera
+        habilidades. A arte shiny e o grito vêm do repositório público da PokéAPI.
+      </p>
+
       <h2 className={styles.subtitle}>Projeto</h2>
       <p>
         Projeto final do curso Full Stack Python da EBAC, por Lucas de Oliveira Pimentel. O código

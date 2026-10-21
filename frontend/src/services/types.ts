@@ -10,6 +10,7 @@ export interface PokemonSummary {
   sprites: string | null
   artwork: string | null
   generation: number | null
+  stats: PokemonStats | null
 }
 
 export interface PokemonStats {
@@ -38,7 +39,6 @@ export interface EvolutionNode {
 
 export interface Pokemon extends PokemonSummary {
   description: string | null
-  stats: PokemonStats | null
   abilities: PokemonAbility[]
   evolution_chain: EvolutionNode | null
 }

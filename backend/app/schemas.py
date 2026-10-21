@@ -223,7 +223,8 @@ class PokemonUpdate(BaseModel):
 
 
 class PokemonSummary(BaseModel):
-    # Campos da listagem: o suficiente para montar um card.
+    # Campos da listagem: o suficiente para montar um card (e mostrar o atributo
+    # usado na ordenação).
     model_config = ConfigDict(
         from_attributes=True,
         json_schema_extra={
@@ -237,6 +238,14 @@ class PokemonSummary(BaseModel):
                     "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png",
                     "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png",
                     "generation": 1,
+                    "stats": {
+                        "hp": 78,
+                        "attack": 84,
+                        "defense": 78,
+                        "special_attack": 109,
+                        "special_defense": 85,
+                        "speed": 100,
+                    },
                 }
             ]
         },
@@ -255,6 +264,12 @@ class PokemonSummary(BaseModel):
     )
     generation: int | None = Field(
         description="Generation in which the Pokémon was introduced, or null if unknown."
+    )
+    # Padrão None: páginas que já estavam no cache do Redis antes deste campo
+    # existir continuam válidas até expirarem.
+    stats: PokemonStats | None = Field(
+        default=None,
+        description="Base stats, or null if unavailable. Useful with `sort` by a stat.",
     )
 
     @field_validator("types", mode="before")
@@ -318,9 +333,6 @@ class PokemonResponse(PokemonSummary):
     description: str | None = Field(
         description="Pokédex entry (flavor text), in English, or null if unavailable."
     )
-    stats: PokemonStats | None = Field(
-        description="Base stats, or null if unavailable."
-    )
     abilities: list[PokemonAbilityItem] = Field(
         description="Abilities in display order. Hidden abilities have `is_hidden` true."
     )
@@ -356,6 +368,14 @@ class PokemonListResponse(BaseModel):
                             "sprites": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
                             "artwork": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
                             "generation": 1,
+                            "stats": {
+                                "hp": 45,
+                                "attack": 49,
+                                "defense": 49,
+                                "special_attack": 65,
+                                "special_defense": 65,
+                                "speed": 45,
+                            },
                         }
                     ],
                     "pagination": {

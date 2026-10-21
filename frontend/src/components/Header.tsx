@@ -2,6 +2,7 @@ import { Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 
+import { useJourney } from '../store/journey'
 import { Logo } from './Logo'
 import styles from './Header.module.css'
 
@@ -10,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/pokedex', label: 'Pokédex', end: false },
   { to: '/tipos', label: 'Tipos', end: false },
   { to: '/geracoes', label: 'Gerações', end: false },
+  { to: '/favoritos', label: 'Favoritos', end: false },
   { to: '/sobre', label: 'Sobre', end: false },
 ]
 
@@ -19,6 +21,7 @@ export function Header() {
   // Guarda a página em que o menu foi aberto: ao navegar, ele fecha sozinho.
   const [openedAt, setOpenedAt] = useState<string | null>(null)
   const menuOpen = openedAt === pathname
+  const { favorites } = useJourney()
 
   // Escape fecha o menu e devolve o foco ao botão que o abriu.
   useEffect(() => {
@@ -66,6 +69,12 @@ export function Header() {
                   className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
                 >
                   {item.label}
+                  {item.to === '/favoritos' && favorites.length > 0 && (
+                    <span className={styles.badge}>
+                      <span className="visually-hidden">: </span>
+                      {favorites.length}
+                    </span>
+                  )}
                 </NavLink>
               </li>
             ))}

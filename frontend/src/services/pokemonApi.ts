@@ -48,8 +48,31 @@ export interface PokemonFilters {
   search: string
   type: string
   generation: number | null
+  sort: SortKey
   page: number
 }
+
+/** Ordenações aceitas pela API em ?sort= (o "-" inverte). */
+export const SORT_KEYS = [
+  'number',
+  '-number',
+  'name',
+  '-name',
+  '-total',
+  '-hp',
+  '-attack',
+  '-defense',
+  '-special_attack',
+  '-special_defense',
+  '-speed',
+] as const
+
+export type SortKey = (typeof SORT_KEYS)[number]
+
+export const DEFAULT_SORT: SortKey = 'number'
+
+/** A API aceita até 100 números em ?ids=. */
+export const MAX_IDS = 100
 
 export function fetchPokemonList(
   filters: PokemonFilters,
@@ -62,7 +85,17 @@ export function fetchPokemonList(
   if (filters.search) params.set('search', filters.search)
   if (filters.type) params.set('type', filters.type)
   if (filters.generation) params.set('generation', String(filters.generation))
+  if (filters.sort !== DEFAULT_SORT) params.set('sort', filters.sort)
 
+  return request<PokemonList>(`/pokemons?${params}`, signal)
+}
+
+/** Pokémon pelos números (favoritos, vistos recentemente), na ordem da Pokédex. */
+export function fetchPokemonsByIds(ids: number[], signal?: AbortSignal): Promise<PokemonList> {
+  const params = new URLSearchParams({
+    ids: ids.slice(0, MAX_IDS).join(','),
+    limit: String(MAX_IDS),
+  })
   return request<PokemonList>(`/pokemons?${params}`, signal)
 }
 

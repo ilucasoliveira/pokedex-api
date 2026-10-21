@@ -67,6 +67,32 @@
   font-weight: 700;
 }
 
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progressTrack {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: var(--color-forest);
+}
+
+.progressText {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted-text);
+}
+
 @media (min-width: 640px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -54,6 +54,28 @@
   color: var(--color-ink);
 }
 
+/* Dica do atalho "/": só em telas com mouse e teclado. */
+.shortcut {
+  position: absolute;
+  right: var(--space-16);
+  display: none;
+  padding: 1px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (min-width: 1024px) {
+  .shortcut {
+    display: block;
+  }
+}
+
 @media (min-width: 1024px) {
   .input {
     height: 52px;

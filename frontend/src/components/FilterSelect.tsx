@@ -10,7 +10,8 @@ export interface FilterOption {
 interface FilterSelectProps {
   id: string
   label: string
-  placeholder: string
+  /** Opção "vazia" (sem filtro). Sem placeholder, uma das opções fica sempre escolhida. */
+  placeholder?: string
   value: string
   options: FilterOption[]
   loading?: boolean
@@ -39,7 +40,7 @@ export function FilterSelect({
           value={value}
           onChange={(event) => onChange(event.target.value)}
         >
-          <option value="">{loading ? 'Carregando…' : placeholder}</option>
+          {placeholder !== undefined && <option value="">{loading ? 'Carregando…' : placeholder}</option>}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

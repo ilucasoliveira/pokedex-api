@@ -5,6 +5,7 @@ import {
   fetchGenerations,
   fetchPokemon,
   fetchPokemonList,
+  fetchPokemonsByIds,
   fetchTypes,
   type PokemonFilters,
 } from './pokemonApi'
@@ -37,6 +38,17 @@ export function usePokemon(idOrName: string) {
   return useQuery({
     queryKey: ['pokemon', idOrName.toLowerCase()],
     queryFn: ({ signal }) => fetchPokemon(idOrName, signal),
+  })
+}
+
+export function usePokemonsByIds(ids: number[]) {
+  // Ordena para a chave do cache não depender da ordem em que foram adicionados.
+  const sorted = [...ids].sort((a, b) => a - b)
+  return useQuery({
+    queryKey: ['pokemons-by-ids', sorted],
+    queryFn: ({ signal }) => fetchPokemonsByIds(sorted, signal),
+    enabled: sorted.length > 0,
+    placeholderData: keepPreviousData,
   })
 }
 

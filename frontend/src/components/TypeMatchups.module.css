@@ -1,0 +1,54 @@
+.matchups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.title {
+  font-family: var(--font-body);
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.multiplier {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-muted-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ×4 e ×¼ chamam mais atenção (e não só pela cor: o número já diz). */
+.double {
+  color: var(--color-error);
+}
+
+.quarter {
+  color: var(--color-success);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--color-muted-text);
+}

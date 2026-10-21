@@ -12,9 +12,13 @@ interface EvolutionChainProps {
   chain: EvolutionNode | null
   /** Número do pokémon da página, destacado na cadeia. */
   currentId: number
+  /** Para onde cada etapa leva. Padrão: a ficha do Pokémon. */
+  hrefFor?: (id: number) => string
 }
 
-export function EvolutionChain({ chain, currentId }: EvolutionChainProps) {
+const defaultHref = (id: number) => `/pokemon/${id}`
+
+export function EvolutionChain({ chain, currentId, hrefFor = defaultHref }: EvolutionChainProps) {
   if (!chain) {
     return <p className={styles.empty}>Evolução não disponível.</p>
   }
@@ -27,7 +31,7 @@ export function EvolutionChain({ chain, currentId }: EvolutionChainProps) {
     // e recebe foco para dar para rolar pelo teclado.
     <div className={styles.scroller} tabIndex={0} role="region" aria-label="Etapas da evolução">
       <ol className={styles.tree}>
-        <Stage node={chain} currentId={currentId} />
+        <Stage node={chain} currentId={currentId} hrefFor={hrefFor} />
       </ol>
     </div>
   )
@@ -36,13 +40,14 @@ export function EvolutionChain({ chain, currentId }: EvolutionChainProps) {
 interface StageProps {
   node: EvolutionNode
   currentId: number
+  hrefFor: (id: number) => string
 }
 
 // Cada etapa é um item com a lista das próximas. Mais de uma próxima = ramificação.
-function Stage({ node, currentId }: StageProps) {
+function Stage({ node, currentId, hrefFor }: StageProps) {
   return (
     <li className={styles.stage}>
-      <EvolutionCell node={node} current={node.id === currentId} />
+      <EvolutionCell node={node} current={node.id === currentId} href={hrefFor(node.id)} />
       {node.evolves_to.length > 0 && (
         // Muitas ramificações (Eevee) viram uma grade em vez de uma coluna comprida.
         <ol
@@ -59,7 +64,7 @@ function Stage({ node, currentId }: StageProps) {
                 <span className={styles.condition}>{formatEvolutionCondition(child)}</span>
               </span>
               <ol className={styles.tree}>
-                <Stage node={child} currentId={currentId} />
+                <Stage node={child} currentId={currentId} hrefFor={hrefFor} />
               </ol>
             </li>
           ))}
@@ -72,9 +77,10 @@ function Stage({ node, currentId }: StageProps) {
 interface EvolutionCellProps {
   node: EvolutionNode
   current: boolean
+  href: string
 }
 
-function EvolutionCell({ node, current }: EvolutionCellProps) {
+function EvolutionCell({ node, current, href }: EvolutionCellProps) {
   const content = (
     <>
       <PokemonImage
@@ -96,7 +102,8 @@ function EvolutionCell({ node, current }: EvolutionCellProps) {
     )
   }
   return (
-    <Link to={`/pokemon/${node.id}`} className={styles.cell}>
+    // Links relativos (?selected=…) trocam o Pokémon do painel lateral sem rolar a página.
+    <Link to={href} className={styles.cell} preventScrollReset={href.startsWith('?')}>
       {content}
     </Link>
   )

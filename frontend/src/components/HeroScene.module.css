@@ -1,0 +1,48 @@
+.scene {
+  width: 100%;
+  height: 100%;
+}
+
+/* Movimentos sutis; a regra de movimento reduzido do kit desliga todos. */
+.cloudSlow {
+  animation: drift 38s ease-in-out infinite alternate;
+}
+
+.cloudFast {
+  animation: drift 26s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-24px);
+  }
+  to {
+    transform: translateX(36px);
+  }
+}
+
+.trail {
+  animation: walk 2.4s linear infinite;
+}
+
+@keyframes walk {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.marker {
+  animation: bob 2.8s ease-in-out infinite;
+}
+
+@keyframes bob {
+  50% {
+    translate: 0 -5px;
+  }
+}
+
+.signText {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  fill: #fdf6e9;
+}

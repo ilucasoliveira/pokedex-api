@@ -49,11 +49,51 @@
   outline-offset: 3px;
 }
 
+.selected,
+.selected:hover {
+  border: 2px solid var(--color-forest);
+  transform: none;
+}
+
 .number {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
   font-size: var(--font-size-pokemon-number-mobile);
   font-weight: 700;
   line-height: 1.35;
   color: var(--color-muted-text);
+}
+
+/* Marca de "já descoberto": pequena, com texto para leitor de tela. */
+.seen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--color-forest);
+  color: var(--color-white);
+}
+
+/* O favorito fica acima da camada clicável do link. */
+.favorite {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+}
+
+.stat {
+  position: relative;
+  font-size: var(--font-size-label);
+  color: var(--color-muted-text);
+}
+
+.stat strong {
+  color: var(--color-ink);
 }
 
 .imageBox {

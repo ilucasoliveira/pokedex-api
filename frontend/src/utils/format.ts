@@ -1,3 +1,4 @@
+import type { SortKey } from '../services/pokemonApi'
 import type { EvolutionNode, PokemonStats } from '../services/types'
 
 const decimal = new Intl.NumberFormat('pt-BR', {
@@ -92,6 +93,42 @@ export const STAT_LABELS: Record<keyof PokemonStats, string> = {
   special_attack: 'Ataque especial',
   special_defense: 'Defesa especial',
   speed: 'Velocidade',
+}
+
+export type StatSortKey = keyof PokemonStats | 'total'
+
+export const SORT_LABELS: Record<SortKey, string> = {
+  number: 'Número (crescente)',
+  '-number': 'Número (decrescente)',
+  name: 'Nome (A–Z)',
+  '-name': 'Nome (Z–A)',
+  '-total': 'Maior total de atributos',
+  '-hp': 'Maior HP',
+  '-attack': 'Maior ataque',
+  '-defense': 'Maior defesa',
+  '-special_attack': 'Maior ataque especial',
+  '-special_defense': 'Maior defesa especial',
+  '-speed': 'Mais rápidos',
+}
+
+/** Atributo usado pela ordenação, para o card mostrar o valor. Nome e número: null. */
+export function sortedStat(sort: SortKey): StatSortKey | null {
+  const key = sort.replace(/^-/, '')
+  if (key === 'total') return 'total'
+  return key in STAT_LABELS ? (key as keyof PokemonStats) : null
+}
+
+export function statTotal(stats: PokemonStats): number {
+  return Object.values(stats).reduce((sum, value) => sum + value, 0)
+}
+
+export function statValue(stats: PokemonStats | null, key: StatSortKey): number | null {
+  if (!stats) return null
+  return key === 'total' ? statTotal(stats) : stats[key]
+}
+
+export function statLabel(key: StatSortKey): string {
+  return key === 'total' ? 'Total' : STAT_LABELS[key]
 }
 
 const TRIGGER_LABELS: Record<string, string> = {

@@ -246,6 +246,7 @@ async def test_list_pokemons_returns_summary_without_details(
         "sprites",
         "artwork",
         "generation",
+        "stats",
     }
     assert item["generation"] == 1
 
@@ -448,8 +449,8 @@ async def test_list_pokemons_cache_key_includes_filters(
 
     # Chaves diferentes para filtros diferentes, todas sob o padrão invalidado na escrita.
     assert keys == [
-        "pokemon:list:limit=20:offset=0:search=char:type=fire:generation=",
-        "pokemon:list:limit=20:offset=0:search=char:type=:generation=",
+        "pokemon:list:limit=20:offset=0:search=char:type=fire:generation=:ids=:sort=number",
+        "pokemon:list:limit=20:offset=0:search=char:type=:generation=:ids=:sort=number",
     ]
     assert all(fnmatch(key, "pokemon:list:*") for key in keys)
 
@@ -501,6 +502,97 @@ async def test_list_pokemons_with_generation_zero_returns_422(
     client: AsyncClient,
 ) -> None:
     response = await client.get("/pokemons", params={"generation": 0})
+
+    assert response.status_code == 422
+
+
+def stats(**values: int) -> dict[str, int]:
+    base = {stat: 50 for stat in STATS}
+    base.update(values)
+    return base
+
+
+async def create_stat_trio(client: AsyncClient) -> None:
+    await create_pokemon(client, id=1, name="bulbasaur", types=["grass"], stats=stats(speed=45))
+    await create_pokemon(client, id=25, name="pikachu", types=["electric"], stats=stats(speed=90, hp=35))
+    await create_pokemon(client, id=143, name="snorlax", types=["normal"], stats=stats(speed=30, hp=160))
+    # Cadastro manual sem atributos: vai sempre para o fim.
+    await create_pokemon(client, id=999, name="aaa-sem-atributos", types=["normal"])
+
+
+@pytest.mark.parametrize(
+    ("sort", "expected"),
+    [
+        ("number", [1, 25, 143, 999]),
+        ("-number", [999, 143, 25, 1]),
+        ("name", [999, 1, 25, 143]),
+        ("-speed", [25, 1, 143, 999]),
+        ("speed", [143, 1, 25, 999]),
+        ("-total", [143, 25, 1, 999]),
+    ],
+)
+async def test_list_pokemons_sort(
+    client: AsyncClient, sort: str, expected: list[int]
+) -> None:
+    await create_stat_trio(client)
+
+    response = await client.get("/pokemons", params={"sort": sort})
+
+    assert response.status_code == 200
+    assert [p["id"] for p in response.json()["data"]] == expected
+
+
+async def test_list_pokemons_sort_combines_with_filters_and_links(
+    client: AsyncClient,
+) -> None:
+    await create_stat_trio(client)
+
+    response = await client.get(
+        "/pokemons", params={"sort": "-hp", "type": "normal", "limit": 1}
+    )
+
+    body = response.json()
+    assert [p["id"] for p in body["data"]] == [143]
+    assert body["pagination"]["next"] == "/pokemons?limit=1&offset=1&type=normal&sort=-hp"
+
+
+async def test_list_pokemons_with_unknown_sort_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/pokemons", params={"sort": "weight"})
+
+    assert response.status_code == 422
+
+
+async def test_list_pokemons_filters_by_ids(client: AsyncClient) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"ids": "16,4,4,999"})
+
+    body = response.json()
+    assert [p["name"] for p in body["data"]] == ["charmander", "pidgey"]
+    assert body["pagination"]["total"] == 2
+
+
+async def test_list_pokemons_ids_are_kept_in_links(client: AsyncClient) -> None:
+    await create_starters(client)
+
+    response = await client.get("/pokemons", params={"ids": "6,1,4", "limit": 1})
+
+    assert response.json()["pagination"]["next"] == "/pokemons?limit=1&offset=1&ids=1%2C4%2C6"
+
+
+@pytest.mark.parametrize("ids", ["1,a", "1,,2", ",1", "1;2"])
+async def test_list_pokemons_with_invalid_ids_returns_422(
+    client: AsyncClient, ids: str
+) -> None:
+    response = await client.get("/pokemons", params={"ids": ids})
+
+    assert response.status_code == 422
+
+
+async def test_list_pokemons_with_too_many_ids_returns_422(client: AsyncClient) -> None:
+    ids = ",".join(str(number) for number in range(1, 102))
+
+    response = await client.get("/pokemons", params={"ids": ids})
 
     assert response.status_code == 422
 
@@ -660,3 +752,24 @@ async def test_delete_pokemon_not_found_returns_404(client: AsyncClient) -> None
     response = await client.delete("/pokemons/999")
 
     assert response.status_code == 404
+
+
+async def test_list_pokemons_accepts_cached_page_from_before_stats(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Página gravada no Redis por uma versão anterior, ainda sem "stats".
+    old_page = (
+        '{"data": [{"id": 1, "name": "bulbasaur", "height": 7, "weight": 69, '
+        '"types": ["grass"], "sprites": null, "artwork": null, "generation": 1}], '
+        '"pagination": {"total": 1, "limit": 20, "offset": 0, "next": null, "previous": null}}'
+    )
+
+    async def cached(key: str) -> str:
+        return old_page
+
+    monkeypatch.setattr(pokemon_router, "get_cache", cached)
+
+    response = await client.get("/pokemons")
+
+    assert response.status_code == 200
+    assert response.json()["data"][0]["stats"] is None

@@ -7,7 +7,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 128px 1fr;
+  grid-template-columns: 118px 1fr;
   align-items: center;
   gap: var(--space-12);
 }
@@ -39,11 +39,37 @@
   overflow: hidden;
 }
 
+/* A barra cresce da esquerda ao aparecer (desligado com movimento reduzido). */
 .bar {
   display: block;
+  width: calc(var(--fill) * 100%);
   height: 100%;
   border-radius: inherit;
   background: var(--color-forest);
+  transform-origin: left center;
+  animation: grow 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.low {
+  background: var(--color-red);
+}
+
+.mid {
+  background: var(--color-mustard);
+}
+
+.good {
+  background: var(--color-forest);
+}
+
+.great {
+  background: var(--color-sky);
 }
 
 .total {

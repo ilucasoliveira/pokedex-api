@@ -11,7 +11,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 ## Funcionalidades
 
 - **CRUD completo** de pokémons, com paginação por `limit`/`offset` (total, próxima e página anterior na resposta) e ordenação pelo número da Pokédex
-- **Busca e filtro na listagem**: nome ou número (`search`), tipo (`type`) e geração (`generation`), combináveis com a paginação
+- **Busca, filtro e ordenação na listagem**: nome ou número (`search`), tipo (`type`), geração (`generation`), lista de números (`ids`) e ordenação por número, nome, atributo ou total (`sort`), combináveis com a paginação
 - **Opções dos filtros** em `GET /types` e `GET /generations`, com a quantidade de pokémons em cada, para o front-end não fixar listas na interface
 - **Ficha completa** de cada pokémon: artwork oficial, geração, descrição da Pokédex, atributos base, habilidades (com a oculta identificada) e cadeia evolutiva, inclusive com ramificações como a do Eevee
 - **CORS configurável** pela variável `CORS_ORIGINS`, para o front-end em outra origem consumir a API
@@ -22,7 +22,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 - **Cache com Redis** nas leituras, invalidado a cada alteração. Se o Redis cair, a API continua funcionando direto pelo banco
 - **Autenticação JWT**: leitura pública, criação/importação/edição/exclusão exigem token
 - **Documentação interativa** em `/docs` (Swagger) com descrições, exemplos e códigos de erro
-- **94 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
+- **110 testes automatizados** cobrindo sucesso e erro de cada endpoint, o import e as migrações
 - **Type hints** em todas as funções, conferidas com mypy
 - **Deploy automático** no Render pelo GitHub Actions, só depois dos testes passarem
 
@@ -272,7 +272,7 @@ curl -X POST http://localhost:8000/pokemons/import/pikachu \
 | `GET`    | `/health`                 |      | Verifica se a API está no ar                                    |
 | `POST`   | `/auth/register`          |      | Cria um usuário                                                 |
 | `POST`   | `/auth/token`             |      | Faz login e devolve o JWT                                       |
-| `GET`    | `/pokemons`               |      | Lista paginada (`limit` até 100, `offset`), ordenada por número, com filtros `search`, `type` e `generation` |
+| `GET`    | `/pokemons`               |      | Lista paginada (`limit` até 100, `offset`), com filtros `search`, `type`, `generation` e `ids` e ordenação `sort` |
 | `GET`    | `/pokemons/{id_or_name}`  |      | Ficha completa de um pokémon, pelo número ou pelo nome          |
 | `POST`   | `/pokemons`               | 🔒   | Cadastra um pokémon                                             |
 | `POST`   | `/pokemons/import/{name}` | 🔒   | Importa da PokéAPI pelo nome ou número                          |
@@ -338,18 +338,21 @@ GET /pokemons?limit=20&offset=0
 - `next`: caminho da próxima página, ou `null` na última
 - `previous`: caminho da página anterior, ou `null` na primeira
 
-Cada item da lista traz o necessário para um card. Atributos, habilidades, descrição e evolução ficam na ficha completa, para a listagem continuar leve.
+Cada item da lista traz o necessário para um card, inclusive os atributos (`stats`), para mostrar o valor usado na ordenação. Habilidades, descrição e evolução ficam na ficha completa, para a listagem continuar leve.
 
 ### Busca e filtro
 
-`GET /pokemons` também aceita três filtros opcionais, que podem ser combinados entre si e com a paginação:
+`GET /pokemons` também aceita filtros e ordenação opcionais, que podem ser combinados entre si e com a paginação:
 
 - `search`: parte do nome, sem diferenciar maiúsculas (`char` encontra charmander, charmeleon e charizard). Um número também busca pelo número da Pokédex, com ou sem zeros à esquerda (`25` e `025` encontram o Pikachu)
 - `type`: nome do tipo (`fire`, `flying`...)
 - `generation`: geração em que o pokémon estreou (`1`, `2`...)
+- `ids`: números da Pokédex separados por vírgula, até 100 (`ids=1,4,25`). É como o front carrega os favoritos numa requisição só
+- `sort`: ordem da lista. `number` (padrão), `name`, um atributo (`hp`, `attack`, `defense`, `special_attack`, `special_defense`, `speed`) ou `total`; com `-` na frente, decrescente (`-speed` lista os mais rápidos primeiro). Empates são desfeitos pelo número, e pokémons sem atributos ficam no fim
 
 ```
 GET /pokemons?search=char&type=flying&generation=1
+GET /pokemons?type=dragon&sort=-total
 ```
 
 Com filtros, o `total` conta só os pokémons que atendem a eles, e os caminhos `next` e `previous` já trazem os filtros (ex.: `/pokemons?limit=20&offset=20&search=char&type=fire`).
@@ -436,7 +439,7 @@ Usa o padrão **cache-aside**:
 
 - **Leitura** (`GET`): procura no Redis; se não achar, busca no banco e grava no cache por até 1 hora
 - **Escrita** (`POST`, `PATCH`, `DELETE`): após o commit no banco, apaga a chave do pokémon alterado e todas as páginas de listagem (`pokemon:list:*`, buscadas com `SCAN` para não travar o Redis)
-- **Chaves**: `pokemon:{id}` para um pokémon e `pokemon:list:limit=..:offset=..:search=..:type=..:generation=..` para cada página, então cada combinação de filtros tem seu próprio cache e todas caem no mesmo padrão de invalidação. A busca pelo nome só traduz o nome para o número e usa a mesma chave `pokemon:{id}`. As opções dos filtros ficam em `pokemon:list:types` e `pokemon:list:generations`, de propósito sob o mesmo padrão: toda escrita já as invalida junto com as páginas
+- **Chaves**: `pokemon:{id}` para um pokémon e `pokemon:list:limit=..:offset=..:search=..:type=..:generation=..:ids=..:sort=..` para cada página, então cada combinação de filtros tem seu próprio cache e todas caem no mesmo padrão de invalidação. A busca pelo nome só traduz o nome para o número e usa a mesma chave `pokemon:{id}`. As opções dos filtros ficam em `pokemon:list:types` e `pokemon:list:generations`, de propósito sob o mesmo padrão: toda escrita já as invalida junto com as páginas
 
 Toda operação de cache tem limite de 1 segundo e captura falhas de conexão. Se o Redis cair, a API segue respondendo pelo banco.
 
@@ -464,7 +467,7 @@ Cobertura por área:
 
 | Arquivo              | O que testa                                                                                                                           |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `test_pokemon.py`    | CRUD: sucesso, 404, 409, 422, paginação (`data`, `total`, `next`, `previous`), ordenação, reaproveitamento de tipos e habilidades, campos novos (atributos, habilidades ocultas, geração), detalhe por número e por nome, filtros `search` (nome e número), `type` e `generation` (sozinhos, combinados, nos links e na chave de cache) |
+| `test_pokemon.py`    | CRUD: sucesso, 404, 409, 422, paginação (`data`, `total`, `next`, `previous`), ordenação, reaproveitamento de tipos e habilidades, campos novos (atributos, habilidades ocultas, geração), detalhe por número e por nome, filtros `search` (nome e número), `type`, `generation` e `ids` e ordenação `sort` (sozinhos, combinados, nos links e na chave de cache), página antiga do cache sem `stats` |
 | `test_import.py`     | Import da PokéAPI: ficha completa, cadeia evolutiva, nome longo e imagens nulas, espécie ausente, 404, 409, 503; import em lote (pulados, falhas por pokémon, cadeia buscada uma vez, faixa inválida, token); seed; conversão de descrição e de cadeias com ramificação |
 | `test_migrations.py` | Migrações geram o mesmo esquema dos modelos, atualizam um banco criado antes do Alembic sem perder dados e podem ser revertidas |
 | `test_catalog.py`    | `/types` e `/generations`: contagens, ordem, tipos sem pokémon escondidos, banco vazio, chaves e uso do cache |
@@ -499,7 +502,7 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub
 
 | Job               | Quando roda                        | O que faz                                                                                 |
 | ----------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 94 testes                      |
+| **Tests**         | Todo push e pull request na `main` | Instala Python 3.14 e as dependências com Poetry e roda os 110 testes                     |
 | **Docker build**  | Depois dos testes                  | Confere se o `Dockerfile` constrói a imagem                                               |
 | **Publish image** | Só em push na `main`               | Publica a imagem em `ghcr.io/ilucasoliveira/pokedex-api` com as tags `latest` e do commit |
 | **Deploy**        | Só em push na `main`               | Chama o Deploy Hook do Render, que constrói e publica a nova versão da API                |

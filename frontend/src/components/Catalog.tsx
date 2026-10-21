@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
 
 import { useDelayedFlag } from '../hooks/useDelayedFlag'
-import { PAGE_SIZE, type PokemonFilters } from '../services/pokemonApi'
+import { useMediaQuery } from '../hooks/useMediaQuery'
+import { PAGE_SIZE, SORT_KEYS, type PokemonFilters, type SortKey } from '../services/pokemonApi'
 import { useGenerations, usePokemonList, useTypes } from '../services/queries'
 import buttons from '../styles/buttons.module.css'
 import { catalogQuery, hasActiveFilters, readCatalogParams } from '../utils/catalogParams'
-import { formatCount, formatGeneration, formatType } from '../utils/format'
+import { formatCount, formatGeneration, formatType, SORT_LABELS, sortedStat } from '../utils/format'
+import { DetailPanel } from './DetailPanel'
 import { FilterSelect, type FilterOption } from './FilterSelect'
 import { Pagination } from './Pagination'
 import { PokemonCard, PokemonCardSkeleton } from './PokemonCard'
@@ -15,6 +17,10 @@ import { ErrorPanel, SlowApiNotice, StatusPanel } from './StatusPanel'
 import styles from './Catalog.module.css'
 
 const SKELETON_COUNT = 8
+const SORT_OPTIONS: FilterOption[] = SORT_KEYS.map((key) => ({ value: key, label: SORT_LABELS[key] }))
+
+// O painel lateral aparece a partir daqui; abaixo, o card abre a página do Pokémon.
+const PANEL_QUERY = '(min-width: 1280px)'
 
 interface CatalogProps {
   title: string
@@ -26,13 +32,16 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const filters = useMemo(() => readCatalogParams(searchParams), [searchParams])
+  const hasPanelSpace = useMediaQuery(PANEL_QUERY)
+  const selectedParam = Number(searchParams.get('selected'))
+  const selected = hasPanelSpace && Number.isInteger(selectedParam) && selectedParam > 0 ? selectedParam : null
 
   const list = usePokemonList(filters)
   const types = useTypes()
   const generations = useGenerations()
   const slow = useDelayedFlag(list.isPending, 4000)
 
-  // Busca e filtros novos sempre voltam para a página 1.
+  // Busca, filtros e ordenação novos sempre voltam para a página 1 (e fecham o painel).
   const updateFilters = useCallback(
     (changes: Partial<PokemonFilters>, replace = false) => {
       const next = { ...readCatalogParams(searchParams), ...changes, page: 1 }
@@ -43,6 +52,25 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
 
   // Digitar substitui a entrada do histórico, para o Voltar não passar letra por letra.
   const handleSearch = useCallback((search: string) => updateFilters({ search }, true), [updateFilters])
+
+  // O Pokémon do painel fica na URL (?selected=25): o Voltar fecha o painel.
+  const panelQuery = useCallback(
+    (id: number | null) => {
+      const params = new URLSearchParams(searchParams)
+      if (id) params.set('selected', String(id))
+      else params.delete('selected')
+      return params
+    },
+    [searchParams],
+  )
+  const selectPokemon = useCallback(
+    (id: number) => setSearchParams(panelQuery(id), { preventScrollReset: true }),
+    [panelQuery, setSearchParams],
+  )
+  const closePanel = useCallback(
+    () => setSearchParams(panelQuery(null), { preventScrollReset: true }),
+    [panelQuery, setSearchParams],
+  )
 
   const typeOptions: FilterOption[] = useMemo(
     () =>
@@ -73,9 +101,13 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
 
   const total = list.data?.pagination.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
+  const pageIds = list.data?.data.map((pokemon) => pokemon.id) ?? []
+  const highlightStat = sortedStat(filters.sort)
   const hrefFor = (page: number) => `${location.pathname}${catalogQuery({ ...filters, page })}`
   const clearFilters = () =>
-    setSearchParams(new URLSearchParams(), { preventScrollReset: true })
+    setSearchParams(new URLSearchParams(catalogQuery({ ...filters, search: '', type: '', generation: null, page: 1 })), {
+      preventScrollReset: true,
+    })
 
   return (
     <section className={styles.catalog} aria-labelledby="catalogo-titulo">
@@ -100,6 +132,13 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
             loading={generations.isPending}
             onChange={(generation) => updateFilters({ generation: generation ? Number(generation) : null })}
           />
+          <FilterSelect
+            id="ordenar"
+            label="Ordenar"
+            value={filters.sort}
+            options={SORT_OPTIONS}
+            onChange={(sort) => updateFilters({ sort: sort as SortKey })}
+          />
           {hasActiveFilters(filters) && (
             <button type="button" className={`${buttons.secondary} ${buttons.small} ${styles.clear}`} onClick={clearFilters}>
               Limpar filtros
@@ -120,41 +159,61 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
 
       <SlowApiNotice visible={slow} />
 
-      <div aria-busy={list.isFetching}>
-        {list.isPending ? (
-          <ul className={styles.grid} aria-label="Carregando Pokémon">
-            {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-              <li key={index}>
-                <PokemonCardSkeleton />
-              </li>
-            ))}
-          </ul>
-        ) : list.isError ? (
-          <ErrorPanel title="Não foi possível carregar os Pokémon." onRetry={() => list.refetch()} />
-        ) : total === 0 ? (
-          <StatusPanel
-            kind="empty"
-            title="Não encontramos esse Pokémon."
-            description="Tente outro nome ou número, ou ajuste os filtros."
-            action={
-              hasActiveFilters(filters) && (
-                <button type="button" className={buttons.secondary} onClick={clearFilters}>
-                  Limpar filtros
-                </button>
-              )
-            }
-          />
-        ) : (
-          <>
-            <ul className={list.isPlaceholderData ? `${styles.grid} ${styles.stale}` : styles.grid}>
-              {list.data.data.map((pokemon, index) => (
-                <li key={pokemon.id}>
-                  <PokemonCard pokemon={pokemon} eager={index < 4} />
+      <div className={selected ? `${styles.results} ${styles.withPanel}` : styles.results}>
+        <div aria-busy={list.isFetching}>
+          {list.isPending ? (
+            <ul className={styles.grid} aria-label="Carregando Pokémon">
+              {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+                <li key={index}>
+                  <PokemonCardSkeleton />
                 </li>
               ))}
             </ul>
-            <Pagination page={filters.page} totalPages={totalPages} hrefFor={hrefFor} />
-          </>
+          ) : list.isError ? (
+            <ErrorPanel title="Não foi possível carregar os Pokémon." onRetry={() => list.refetch()} />
+          ) : total === 0 ? (
+            <StatusPanel
+              kind="empty"
+              title="Não encontramos esse Pokémon."
+              description="Tente outro nome ou número, ou ajuste os filtros."
+              action={
+                hasActiveFilters(filters) && (
+                  <button type="button" className={buttons.secondary} onClick={clearFilters}>
+                    Limpar filtros
+                  </button>
+                )
+              }
+            />
+          ) : (
+            <>
+              <ul className={list.isPlaceholderData ? `${styles.grid} ${styles.stale}` : styles.grid}>
+                {list.data.data.map((pokemon, index) => (
+                  <li key={pokemon.id}>
+                    <PokemonCard
+                      pokemon={pokemon}
+                      eager={index < 4}
+                      highlightStat={highlightStat}
+                      onSelect={hasPanelSpace ? selectPokemon : undefined}
+                      selected={pokemon.id === selected}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <Pagination page={filters.page} totalPages={totalPages} hrefFor={hrefFor} />
+            </>
+          )}
+        </div>
+
+        {selected && (
+          <DetailPanel
+            key="painel"
+            id={selected}
+            pageIds={pageIds}
+            onSelect={selectPokemon}
+            onClose={closePanel}
+            hrefFor={(id) => `?${panelQuery(id)}`}
+            from={`${location.pathname}${location.search}`}
+          />
         )}
       </div>
     </section>

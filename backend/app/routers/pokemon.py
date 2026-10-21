@@ -3,11 +3,11 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import ColumnElement, func, or_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import QueryableAttribute, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Pokemon, Type
+from app.models import STAT_FIELDS, Pokemon, Type
 from app.pokeapi import (
     PokeAPIUnavailable,
     PokemonNotFoundInPokeAPI,
@@ -49,6 +49,21 @@ CONFLICT: ErrorResponses = {
         "description": "A Pokémon with this id or name already exists.",
     }
 }
+
+# Chaves aceitas em ?sort= e a coluna (ou expressão) de cada uma.
+SORT_COLUMNS: dict[str, ColumnElement[Any] | QueryableAttribute[Any]] = {
+    "number": Pokemon.id,
+    "name": Pokemon.name,
+    **{field: getattr(Pokemon, field) for field in STAT_FIELDS},
+    "total": sum(
+        (getattr(Pokemon, field) for field in STAT_FIELDS[1:]),
+        start=getattr(Pokemon, STAT_FIELDS[0]),
+    ),
+}
+SORT_KEYS = tuple(SORT_COLUMNS)
+
+# Quantos números cabem no filtro ?ids= (ex.: a lista de favoritos do front).
+MAX_IDS_FILTER = 100
 
 # A ficha completa precisa dos tipos e das habilidades já carregados, porque o
 # SQLAlchemy assíncrono não carrega relacionamentos sob demanda.
@@ -206,13 +221,16 @@ async def read_one_pokemon(
     response_model=PokemonListResponse,
     summary="List Pokémon",
     description=(
-        "Returns a page of Pokémon ordered by Pokédex number, plus pagination info: "
+        "Returns a page of Pokémon, plus pagination info: "
         "the total matching the filters and the paths to the next and previous pages. "
         "Each item has the fields needed for a card; the full record (stats, "
         "abilities, evolution) comes from `GET /pokemons/{id_or_name}`. "
         "Optional filters: `search` (part of the name, case-insensitive, or the "
-        "Pokédex number), `type` (type name) and `generation`. Filters can be "
-        "combined and are kept in the pagination links. "
+        "Pokédex number), `type` (type name), `generation` and `ids` (a list of "
+        "Pokédex numbers, e.g. to load favorites). `sort` picks the order: by "
+        "number (default), name, a base stat or the stat total, with a leading "
+        "`-` for descending (`-speed` lists the fastest first). Filters and sort "
+        "can be combined and are kept in the pagination links. "
         "Public endpoint. Each page is cached in Redis for up to 1 hour."
     ),
 )
@@ -245,12 +263,37 @@ async def read_pokemons(
         description="Generation in which the Pokémon was introduced.",
         examples=[1],
     ),
+    ids: str | None = Query(
+        default=None,
+        max_length=600,
+        pattern=r"^\d+(,\d+)*$",
+        description=(
+            f"Comma-separated Pokédex numbers (at most {MAX_IDS_FILTER}). "
+            "Only these Pokémon are returned."
+        ),
+        examples=["1,4,25"],
+    ),
+    sort: str = Query(
+        default="number",
+        pattern=f"^-?({'|'.join(SORT_KEYS)})$",
+        description=(
+            f"Sort key: {', '.join(f'`{key}`' for key in SORT_KEYS)}. "
+            "Prefix with `-` for descending. Ties are broken by Pokédex number."
+        ),
+        examples=["-total"],
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> PokemonListResponse:
     # Nomes e tipos são salvos em minúsculas, então basta normalizar a entrada.
     # Texto vazio ou só com espaços conta como filtro ausente.
     search = (search or "").strip().lower() or None
     type_name = (type_name or "").strip().lower() or None
+    id_list = sorted({int(item) for item in ids.split(",")}) if ids else []
+    if len(id_list) > MAX_IDS_FILTER:
+        raise HTTPException(
+            status_code=422,
+            detail=f"ids accepts at most {MAX_IDS_FILTER} Pokédex numbers.",
+        )
 
     # O prefixo pokemon:list: continua o mesmo, então a invalidação por padrão
     # (pokemon:list:*) apaga também as páginas filtradas.
@@ -258,6 +301,7 @@ async def read_pokemons(
         f"pokemon:list:limit={limit}:offset={offset}"
         f":search={search or ''}:type={type_name or ''}"
         f":generation={generation or ''}"
+        f":ids={','.join(map(str, id_list))}:sort={sort}"
     )
     cached_page = await get_cache(cache_key)
 
@@ -277,6 +321,13 @@ async def read_pokemons(
         filters.append(Pokemon.types.any(Type.name == type_name))
     if generation:
         filters.append(Pokemon.generation == generation)
+    if id_list:
+        filters.append(Pokemon.id.in_(id_list))
+
+    # Pokémon sem o atributo (cadastro manual) ficam sempre no fim; o número
+    # desempata, para a paginação ser estável.
+    sort_column = SORT_COLUMNS[sort.removeprefix("-")]
+    order = sort_column.desc() if sort.startswith("-") else sort_column.asc()
 
     total = (
         await db.scalar(select(func.count()).select_from(Pokemon).where(*filters)) or 0
@@ -286,7 +337,7 @@ async def read_pokemons(
         select(Pokemon)
         .where(*filters)
         .options(selectinload(Pokemon.types))
-        .order_by(Pokemon.id)
+        .order_by(order.nulls_last(), Pokemon.id)
         .offset(offset)
         .limit(limit)
     )
@@ -301,6 +352,10 @@ async def read_pokemons(
             params["type"] = type_name
         if generation:
             params["generation"] = generation
+        if id_list:
+            params["ids"] = ",".join(map(str, id_list))
+        if sort != "number":
+            params["sort"] = sort
         return f"{router.prefix}?{urlencode(params)}"
 
     next_offset = offset + limit

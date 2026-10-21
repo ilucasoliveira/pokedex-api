@@ -20,7 +20,7 @@ describe('página do pokémon', () => {
     const title = await screen.findByRole('heading', { level: 1, name: 'Pikachu' })
     expect(document.title).toBe('Pikachu (#0025) · Rota151')
     expect(title.previousElementSibling).toHaveTextContent('#0025')
-    expect(screen.getByText('Elétrico')).toBeInTheDocument()
+    expect(within(screen.getAllByRole('list', { name: 'Tipos' })[0]).getByText('Elétrico')).toBeInTheDocument()
     expect(screen.getByText('Geração I')).toBeInTheDocument()
     expect(screen.getByText('0,4 m')).toBeInTheDocument()
     expect(screen.getByText('6,0 kg')).toBeInTheDocument()
@@ -34,7 +34,7 @@ describe('página do pokémon', () => {
 
     const abilities = (await screen.findByRole('heading', { name: 'Habilidades' })).closest('section')!
     expect(within(abilities).getByText('Static')).toBeInTheDocument()
-    const hidden = within(abilities).getByRole('heading', { name: 'Habilidade oculta' }).parentElement!
+    const hidden = within(abilities).getByText('Habilidade oculta').parentElement!
     expect(within(hidden).getByText('Lightning Rod')).toBeInTheDocument()
 
     const stats = screen.getByRole('heading', { name: 'Atributos base' }).closest('section')!

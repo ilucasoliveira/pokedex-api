@@ -2,7 +2,17 @@
 
 **No ar:** [https://rota151-9ykf.onrender.com](https://rota151-9ykf.onrender.com)
 
-Interface web da Pokedex API, seguindo o kit de design Rota151: busca por nome ou número, filtros por tipo e geração, cards paginados e ficha completa de cada Pokémon com atributos, habilidades e linha evolutiva (inclusive com ramificações, como a do Eevee).
+Interface web da Pokedex API, seguindo o kit de design Rota151 e o slogan dele, **Explorar · Descobrir · Completar**: uma Pokédex para explorar, com uma jornada que guarda o que você já descobriu.
+
+## Experiência
+
+- **Explorar**: busca por nome ou número (atalho `/`), filtros por tipo e geração, ordenação (número, nome, mais rápidos, maior total de atributos...) com o valor do atributo no card, e tudo na URL para compartilhar
+- **Painel lateral no desktop** (a partir de 1280 px): o card abre a ficha ao lado da lista, com anterior/próximo da página e Escape para fechar; no celular, a ficha abre em página própria
+- **Ficha completa**: arte oficial com versão **shiny**, **grito** do Pokémon, medidas em pt-BR, habilidades com a oculta destacada, atributos em barras animadas por faixa, **fraquezas e resistências** (×4, ×2, ×½, ×¼, imune) e linha evolutiva com ramificações (Eevee, Wurmple). Anterior/próximo da Pokédex pelas setas `←` `→`
+- **Descobrir**: cada ficha aberta entra na sua Pokédex. O início mostra o progresso ("37 de 1.025 descobertos"), os cards ganham a marca de descoberto, cada geração mostra quantos faltam, e o botão **Descobrir um Pokémon novo** sorteia um que você ainda não viu
+- **Favoritos**: coração nos cards e na ficha, contador no menu e página própria
+- **Vistos recentemente**, para retomar a exploração
+- Hero ilustrado (trilha, montanhas e a placa da Rota 151, em SVG próprio com as cores do kit), com animações leves que somem com movimento reduzido
 
 ## Stack
 
@@ -51,14 +61,15 @@ VITE_API_URL=http://localhost:8000
 
 | Rota                   | Conteúdo                                                        |
 | ---------------------- | --------------------------------------------------------------- |
-| `/`                    | Hero e catálogo                                                 |
+| `/`                    | Hero, jornada (progresso), vistos recentemente e catálogo       |
 | `/pokedex`             | Catálogo: busca, filtros, contagem e cards paginados (24 por página) |
 | `/pokemon/:idOrName`   | Ficha completa, pelo número ou pelo nome                        |
 | `/tipos`               | Os tipos com a quantidade de Pokémon em cada                    |
-| `/geracoes`            | As gerações com a quantidade de Pokémon em cada                 |
+| `/geracoes`            | As gerações com a quantidade de Pokémon e o seu progresso em cada |
+| `/favoritos`           | Pokémon favoritados, do mais recente para o mais antigo         |
 | `/sobre`               | Sobre o projeto, créditos e aviso de projeto de fã               |
 
-Busca, filtros e página ficam na URL (`/pokedex?search=char&type=fire&generation=1&page=2`): o link pode ser compartilhado, o "Voltar" do navegador funciona, e o "Voltar para a lista" da ficha volta exatamente para a lista de onde o usuário veio.
+Busca, filtros, ordenação, página e o Pokémon do painel ficam na URL (`/pokedex?search=char&type=fire&sort=-speed&page=2&selected=6`): o link pode ser compartilhado, o "Voltar" do navegador funciona, e o "Voltar para a lista" da ficha volta exatamente para a lista de onde o usuário veio.
 
 ## Estrutura
 
@@ -70,9 +81,10 @@ src/
 ├── hooks/           # título da aba e aviso de API lenta
 ├── pages/           # uma por rota
 ├── services/        # tipos da API, chamadas HTTP e hooks do TanStack Query
+├── store/           # jornada: favoritos, descobertos e vistos recentemente (localStorage)
 ├── styles/          # tokens do kit (sem alterações), base global e botões
 ├── test/            # setup do Vitest e helpers (app em memória, API falsa)
-└── utils/           # formatação pt-BR, parâmetros da URL, paginação e cores dos tipos
+└── utils/           # formatação pt-BR, parâmetros da URL, paginação, cores e tabela de tipos
 ```
 
 ## Decisões
@@ -83,6 +95,9 @@ src/
 - **Textos que a API não traduz** (descrição, habilidades, itens) ficam no original. A descrição é marcada com `lang="en"` para o leitor de tela pronunciar em inglês
 - **Logo em React**: o logo do kit usa `<text>` com Rubik dentro do SVG; como `<img>`, ele não usaria a fonte da página. O símbolo é a imagem e o nome é texto
 - **Acessibilidade**: link "Pular para o conteúdo", foco visível com o anel do kit, `<select>` nativo nos filtros, menu mobile fechando com Escape e devolvendo o foco, contagem anunciada com `role="status"`, foco levado ao título dos resultados ao trocar de página, alvos de pelo menos 44 px e `prefers-reduced-motion` respeitado (regra do kit)
+- **Jornada só no navegador**: favoritos, descobertos e vistos recentemente ficam no `localStorage` (sem conta nem servidor), sincronizados entre abas. Se o armazenamento estiver bloqueado (modo privado), tudo funciona durante a sessão. "Recomeçar" apaga tudo
+- **Dados derivados, não inventados**: a tabela de fraquezas é a oficial dos jogos (Geração VI em diante) e não considera habilidades, o que a tela avisa. A arte shiny e o grito vêm do repositório público da PokéAPI, no mesmo padrão de URL que ela usa; se não existirem, a arte normal volta e aparece "Grito indisponível". O botão de grito some em navegadores sem suporte a OGG
+- **Sem conteúdo pulando**: a faixa de vistos recentemente é a de quando a página abriu, então abrir um Pokémon no painel não empurra a lista
 - **Busca com debounce de 300 ms**: o Enter busca na hora, digitar não enche o histórico do navegador (a URL é substituída), e buscas antigas são canceladas pelo TanStack Query
 
 ## Deploy
@@ -90,9 +105,3 @@ src/
 Site estático no Render, descrito no [`render.yaml`](../render.yaml) da raiz (serviço `rota151`): build com `npm ci && npm run build`, publicação do `dist/` e `VITE_API_URL` apontando para a API publicada. O Render publica sozinho quando um push na `main` mexe em `frontend/` e os checks do CI passam. Como é uma SPA, qualquer caminho sem arquivo recebe o `index.html`.
 
 O endereço do site precisa estar na `CORS_ORIGINS` da API, senão o navegador bloqueia as chamadas.
-
-## Ainda não feito
-
-- Favoritos (opcional no guia)
-- Painel lateral de detalhe no desktop (o guia sugere; hoje o detalhe abre em página própria)
-- Ordenação além do número

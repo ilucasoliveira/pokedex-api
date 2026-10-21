@@ -33,6 +33,20 @@ export function SearchBar({ value, onSearch }: SearchBarProps) {
     return () => window.clearTimeout(timer)
   }, [draft, value, onSearch])
 
+  // Atalho "/": leva o foco à busca de qualquer ponto da página.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const typing = target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      if (event.key === '/' && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     onSearch(normalizeSearch(draft))
@@ -59,9 +73,15 @@ export function SearchBar({ value, onSearch }: SearchBarProps) {
         autoComplete="off"
         spellCheck={false}
         enterKeyHint="search"
+        aria-keyshortcuts="/"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
       />
+      {!draft && (
+        <kbd className={styles.shortcut} aria-hidden="true" title="Atalho: tecla /">
+          /
+        </kbd>
+      )}
       {draft && (
         <button type="button" className={styles.clear} onClick={handleClear}>
           <X size={20} aria-hidden="true" />

@@ -44,6 +44,7 @@ export function summary(id: number, name: string, types: string[] = ['normal']):
     sprites: `https://img.test/${id}.png`,
     artwork: `https://img.test/art/${id}.png`,
     generation: 1,
+    stats: { hp: 50, attack: 50, defense: 50, special_attack: 50, special_defense: 50, speed: 50 },
   }
 }
 

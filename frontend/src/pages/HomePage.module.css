@@ -1,15 +1,13 @@
 .hero {
-  margin-bottom: var(--space-32);
   border-bottom: 1px solid var(--color-border);
-  background:
-    linear-gradient(180deg, rgba(108, 182, 232, 0.18) 0%, rgba(253, 246, 233, 0) 100%);
+  background: linear-gradient(180deg, rgba(108, 182, 232, 0.16) 0%, rgba(253, 246, 233, 0) 100%);
 }
 
 .heroInner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-24);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-32);
   min-height: 210px;
   padding-block: var(--space-32);
 }
@@ -19,10 +17,9 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-16);
-  max-width: 640px;
 }
 
-/* Rótulo curto em fonte de 8 bits: o único lugar em que ela aparece. */
+/* Rótulo curto em fonte de 8 bits, como pede o guia. */
 .eyebrow {
   font-family: var(--font-pixel);
   font-size: var(--font-size-pixel-mobile);
@@ -35,36 +32,51 @@
   font-size: var(--font-size-hero-mobile);
   font-weight: 800;
   line-height: 1.12;
+  text-wrap: balance;
 }
 
 .subtitle {
   font-size: var(--font-size-body);
   color: var(--color-muted-text);
+  max-width: 560px;
 }
 
-.symbol {
-  display: none;
-  width: 140px;
-  height: auto;
-  flex-shrink: 0;
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
 }
 
-@media (min-width: 640px) {
-  .symbol {
-    display: block;
-  }
+/* A ilustração fica numa "janela" com moldura de madeira, como uma placa da rota. */
+.scene {
+  overflow: hidden;
+  height: 180px;
+  border: 3px solid var(--color-earth);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
 }
 
-@media (min-width: 1024px) {
-  .hero {
-    margin-bottom: var(--space-48);
-  }
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+  padding-top: var(--space-32);
+}
 
+@media (min-width: 900px) {
   .heroInner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-40);
     min-height: 280px;
     padding-block: var(--space-48);
   }
 
+  .scene {
+    height: 300px;
+  }
+}
+
+@media (min-width: 1024px) {
   .eyebrow {
     font-size: var(--font-size-pixel-desktop);
   }
@@ -77,7 +89,8 @@
     font-size: 18px;
   }
 
-  .symbol {
-    width: 170px;
+  .content {
+    gap: var(--space-48);
+    padding-top: var(--space-48);
   }
 }

@@ -1,0 +1,290 @@
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  animation: enter 220ms ease-out;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.artwork {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  border-radius: var(--radius-card);
+  /* Fundo sutil associado ao tipo principal, com um "chão" para a arte pousar. */
+  background:
+    radial-gradient(ellipse 60% 14% at 50% 88%, rgba(31, 31, 29, 0.12), transparent 70%),
+    radial-gradient(circle at 50% 40%, var(--color-white) 0%, transparent 70%),
+    color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 28%, var(--color-white));
+}
+
+.artwork > img,
+.artwork > div {
+  width: 220px !important;
+  height: 220px !important;
+  filter: drop-shadow(0 8px 12px rgba(31, 31, 29, 0.18));
+}
+
+.shiny {
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shinyOn {
+  border-color: var(--color-mustard);
+  background: #fdf1d3;
+}
+
+.shinyOn svg {
+  color: var(--color-mustard);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+  width: 100%;
+}
+
+.favorite {
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+}
+
+.number {
+  font-size: var(--font-size-pokemon-number-mobile);
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.name {
+  font-size: var(--font-size-hero-mobile);
+  font-weight: 800;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.generation {
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  color: var(--color-earth);
+}
+
+.description {
+  align-self: stretch;
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border-left: 4px solid var(--color-mustard);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  background: var(--color-surface-alt);
+}
+
+.description blockquote {
+  margin: 0;
+}
+
+.descriptionSource {
+  margin-top: var(--space-4);
+  font-size: 12px;
+  color: var(--color-muted-text);
+}
+
+.muted {
+  color: var(--color-muted-text);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-16);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-subheading-mobile);
+  font-weight: 700;
+}
+
+.subTitle {
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.measures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  margin: 0;
+}
+
+.measure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-12);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-alt);
+}
+
+.measure dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  color: var(--color-muted-text);
+}
+
+.measure dt svg {
+  color: var(--color-earth);
+}
+
+.measure dd {
+  margin: 0;
+  padding-left: 28px;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.abilities {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pill {
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  font-weight: 600;
+}
+
+.hidden {
+  border-style: dashed;
+  border-color: var(--color-earth);
+}
+
+@media (min-width: 768px) {
+  .sheet:not(.panel) .hero {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: var(--space-24);
+  }
+
+  .sheet:not(.panel) .artwork {
+    flex-shrink: 0;
+  }
+
+  .sheet:not(.panel) .artwork > img,
+  .sheet:not(.panel) .artwork > div {
+    width: 240px !important;
+    height: 240px !important;
+  }
+
+  .sheet:not(.panel) .name {
+    font-size: var(--font-size-hero-desktop);
+  }
+
+  .number {
+    font-size: var(--font-size-pokemon-number-desktop);
+  }
+
+  .sheet:not(.panel) .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sheet:not(.panel) .wide {
+    grid-column: 1 / -1;
+  }
+
+  .sheet:not(.panel) .section {
+    padding: var(--space-24);
+  }
+
+  .sheet:not(.panel) .sectionTitle {
+    font-size: var(--font-size-subheading-desktop);
+  }
+}
+
+/* Painel lateral: uma coluna só, blocos sem sombra para não pesar. */
+.panel {
+  gap: var(--space-16);
+}
+
+.panel .hero,
+.panel .section {
+  box-shadow: none;
+}
+
+.panel .name {
+  font-size: var(--font-size-section-desktop);
+}
+
+.panel .sectionTitle {
+  font-size: 18px;
+}

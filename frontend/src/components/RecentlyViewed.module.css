@@ -1,0 +1,67 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.title {
+  font-size: var(--font-size-subheading-mobile);
+  font-weight: 700;
+}
+
+/* Rola na horizontal no celular; no desktop costuma caber inteira. */
+.list {
+  display: flex;
+  gap: var(--space-12);
+  margin: 0;
+  padding: var(--space-4) var(--space-4) var(--space-8);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.list li {
+  scroll-snap-align: start;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 112px;
+  padding: var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--badge-bg, var(--color-surface-alt)) 14%, var(--color-white));
+  color: var(--color-ink);
+  text-decoration: none;
+  text-align: center;
+  transition:
+    transform var(--transition-normal),
+    border-color var(--transition-normal);
+}
+
+.item:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-mustard);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.number {
+  font-size: 12px;
+  color: var(--color-muted-text);
+}
+
+@media (min-width: 1024px) {
+  .title {
+    font-size: var(--font-size-subheading-desktop);
+  }
+}

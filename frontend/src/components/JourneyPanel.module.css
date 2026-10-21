@@ -1,0 +1,124 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-20);
+  border: 2px solid var(--color-mustard);
+  border-radius: var(--radius-panel);
+  background:
+    linear-gradient(135deg, rgba(224, 169, 50, 0.12), rgba(255, 255, 255, 0) 60%),
+    var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.eyebrow {
+  font-family: var(--font-pixel);
+  font-size: var(--font-size-pixel-mobile);
+  line-height: 1.6;
+  color: var(--color-earth);
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: var(--font-size-subheading-mobile);
+  font-weight: 700;
+}
+
+.lead {
+  color: var(--color-muted-text);
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.track {
+  flex: 1;
+  height: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  min-width: 6px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-forest), #4f9a52);
+  transition: width 600ms ease;
+}
+
+.percent {
+  min-width: 52px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--min-touch-target);
+  padding: 0 var(--space-8);
+  border: 0;
+  background: none;
+  color: var(--color-muted-text);
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: var(--color-red-accessible);
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "text actions"
+      "progress progress";
+    align-items: center;
+    padding: var(--space-24);
+  }
+
+  .text {
+    grid-area: text;
+  }
+
+  .actions {
+    grid-area: actions;
+    justify-content: flex-end;
+  }
+
+  .progress {
+    grid-area: progress;
+  }
+
+  .eyebrow {
+    font-size: var(--font-size-pixel-desktop);
+  }
+
+  .title {
+    font-size: var(--font-size-subheading-desktop);
+  }
+}

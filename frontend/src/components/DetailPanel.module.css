@@ -1,0 +1,100 @@
+/* Painel fixo ao lado da lista: rola por conta própria, abaixo do header. */
+.panel {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-16));
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--header-height) - var(--space-32));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-alt);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+  animation: slide 200ms ease-out;
+}
+
+@keyframes slide {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  outline: none;
+}
+
+.toolbar:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: -3px;
+}
+
+.label {
+  font-family: var(--font-pixel);
+  font-size: var(--font-size-pixel-desktop);
+  color: var(--color-earth);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--min-touch-target);
+  height: var(--min-touch-target);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-white);
+  cursor: pointer;
+}
+
+.icon:hover:not(:disabled) {
+  border-color: var(--color-forest);
+}
+
+.icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.loading {
+  padding: var(--space-32) 0;
+  color: var(--color-muted-text);
+  text-align: center;
+}
+
+.full {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: 48px;
+  border-radius: var(--radius-button);
+  background: var(--color-forest);
+  color: var(--color-white);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.full:hover {
+  background: #256b29;
+}

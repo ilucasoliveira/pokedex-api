@@ -23,6 +23,7 @@
   align-items: end;
 }
 
+.filters > div:nth-child(3),
 .clear {
   grid-column: 1 / -1;
 }
@@ -55,6 +56,22 @@
   padding: 0;
   list-style: none;
   transition: opacity var(--transition-normal);
+}
+
+/* Com o painel lateral aberto: lista à esquerda, ficha à direita (416 px, como no guia). */
+.results {
+  display: block;
+}
+
+.withPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 416px;
+  gap: var(--space-32);
+  align-items: start;
+}
+
+.withPanel .grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
 /* Enquanto a próxima página carrega, a atual fica esmaecida. */
@@ -92,7 +109,11 @@
   }
 
   .filters > div {
-    width: 220px;
+    width: 200px;
+  }
+
+  .filters > div:nth-child(3) {
+    width: 230px;
   }
 
   .clear {
