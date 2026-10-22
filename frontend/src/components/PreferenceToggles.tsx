@@ -15,8 +15,9 @@ export function PreferenceToggles() {
         type="button"
         className={styles.button}
         onClick={() => setLanguage(nextLanguage)}
-        // O rótulo está no idioma de destino ("Switch to English"), para quem não lê o atual.
-        aria-label={t('language.switch')}
+        // O rótulo está no idioma de destino ("Switch to English"), para quem não lê o atual,
+        // e começa pelo texto visível ("EN"): quem usa comando de voz fala o que vê.
+        aria-label={`${nextLanguage.toUpperCase()}: ${t('language.switch')}`}
         lang={nextLanguage === 'pt' ? 'pt-BR' : 'en'}
         title={t('language.switch')}
       >

@@ -36,14 +36,14 @@ describe('idiomas', () => {
     await screen.findByRole('heading', { level: 1, name: 'Pikachu' })
     expect(screen.getByRole('heading', { name: 'Atributos base' })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Switch to English' }))
+    await userEvent.click(screen.getByRole('button', { name: 'EN: Switch to English' }))
 
     expect(await screen.findByRole('heading', { name: 'Base stats' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to list' })).toBeInTheDocument()
     const types = screen.getAllByRole('list', { name: 'Types' })[0]
     expect(within(types).getByText('Electric')).toBeInTheDocument()
     expect(window.localStorage.getItem('rota151:idioma')).toBe('en')
-    expect(screen.getByRole('button', { name: 'Mudar para português' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'PT: Mudar para português' })).toBeInTheDocument()
   })
 })
 
@@ -74,7 +74,7 @@ describe('rodapé', () => {
       'https://github.com/ilucasoliveira',
     )
 
-    await userEvent.click(screen.getByRole('button', { name: 'Switch to English' }))
+    await userEvent.click(screen.getByRole('button', { name: 'EN: Switch to English' }))
     expect(screen.getByRole('contentinfo')).toHaveTextContent(`© ${year} Rota151 · Built by Lucas de Oliveira`)
   })
 })

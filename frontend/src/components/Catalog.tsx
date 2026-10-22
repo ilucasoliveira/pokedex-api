@@ -6,7 +6,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { PAGE_SIZE, SORT_KEYS, type PokemonFilters, type SortKey } from '../services/pokemonApi'
 import { useGenerations, usePokemonList, useTypes } from '../services/queries'
 import buttons from '../styles/buttons.module.css'
-import { catalogQuery, hasActiveFilters, readCatalogParams } from '../utils/catalogParams'
+import { catalogQuery, correctFilters, hasActiveFilters, readCatalogParams } from '../utils/catalogParams'
 import { t } from '../i18n'
 import { formatCount, formatGeneration, formatSort, formatType, sortedStat } from '../utils/format'
 import { DetailPanel } from './DetailPanel'
@@ -102,6 +102,19 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
 
   const total = list.data?.pagination.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Filtro ou página que não existe: corrige a URL, sem criar entrada no histórico.
+  const correction = correctFilters(filters, {
+    totalPages: list.data && !list.isPlaceholderData ? totalPages : null,
+    types: types.data?.map((type) => type.name) ?? null,
+    generations: generations.data?.map((generation) => generation.id) ?? null,
+  })
+  const correctedQuery = correction ? catalogQuery(correction) : null
+  useEffect(() => {
+    if (correctedQuery !== null) {
+      setSearchParams(new URLSearchParams(correctedQuery), { replace: true, preventScrollReset: true })
+    }
+  }, [correctedQuery, setSearchParams])
   const pageIds = list.data?.data.map((pokemon) => pokemon.id) ?? []
   const highlightStat = sortedStat(filters.sort)
   const hrefFor = (page: number) => `${location.pathname}${catalogQuery({ ...filters, page })}`
@@ -164,8 +177,10 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
         <div aria-busy={list.isFetching}>
           {list.isPending ? (
             <ul className={styles.grid} aria-label={t('catalog.loading')}>
+              {/* Chave própria: com o índice (0 a 7), o React reaproveitava esses <li> para
+                  os cards de chave 1 a 7, que pulavam de coluna ao carregar (CLS 0,14). */}
               {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-                <li key={index}>
+                <li key={`esqueleto-${index}`}>
                   <PokemonCardSkeleton />
                 </li>
               ))}
@@ -196,6 +211,7 @@ export function Catalog({ title, headingLevel: Heading }: CatalogProps) {
                       highlightStat={highlightStat}
                       onSelect={hasPanelSpace ? selectPokemon : undefined}
                       selected={pokemon.id === selected}
+                      headingLevel={Heading === 'h1' ? 'h2' : 'h3'}
                     />
                   </li>
                 ))}

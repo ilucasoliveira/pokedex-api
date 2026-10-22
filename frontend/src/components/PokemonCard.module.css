@@ -140,6 +140,18 @@
   margin-inline: auto;
 }
 
+/* O esqueleto ocupa a mesma altura do card de verdade (número com 28 px, nome com
+   uma linha), senão as linhas de baixo pulam quando os dados chegam (CLS). */
+.skeletonNumber {
+  width: 56px;
+  margin-block: 7px;
+}
+
+.skeletonName {
+  width: 70%;
+  height: calc(var(--font-size-card-title-mobile) * 1.25);
+}
+
 @keyframes shimmer {
   from {
     background-position: 100% 0;
@@ -171,6 +183,10 @@
   .skeletonImage {
     width: 152px;
     height: 152px;
+  }
+
+  .skeletonName {
+    height: calc(var(--font-size-card-title-desktop) * 1.25);
   }
 
   .name {

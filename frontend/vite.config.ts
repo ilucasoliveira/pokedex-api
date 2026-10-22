@@ -16,6 +16,14 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      {
+        // Abre a conexão com a API (DNS, TLS) enquanto o JS ainda baixa. O fetch é
+        // CORS sem cookies, por isso o crossorigin: sem ele a conexão não é reaproveitada.
+        name: 'rota151-preconnect-api',
+        transformIndexHtml: () => [
+          { tag: 'link', attrs: { rel: 'preconnect', href: apiOrigin, crossorigin: '' }, injectTo: 'head' },
+        ],
+      },
       // O site vira um app instalável (PWA) no Android e no iPhone: ícone na tela
       // inicial, tela cheia e funcionamento offline do que já foi visto.
       VitePWA({
@@ -50,7 +58,8 @@ export default defineConfig(({ mode }) => {
           // O "esqueleto" do site fica no aparelho: abre na hora, inclusive offline.
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
           // Fontes só nos alfabetos latinos (os outros subsets nunca são usados aqui).
-          globIgnores: ['**/*-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese,hebrew,arabic}-*'],
+          // Só o latin entra no pacote offline: é o que o português e o inglês usam.
+          globIgnores: ['**/*-{latin-ext,cyrillic,cyrillic-ext,greek,greek-ext,vietnamese,hebrew,arabic}-*'],
           // SPA: qualquer endereço do site abre o index.html, e o React Router resolve.
           navigateFallback: '/index.html',
           runtimeCaching: [

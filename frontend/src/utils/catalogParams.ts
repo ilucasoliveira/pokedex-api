@@ -43,3 +43,32 @@ export function catalogQuery(filters: PokemonFilters): string {
 export function hasActiveFilters(filters: PokemonFilters): boolean {
   return Boolean(filters.search || filters.type || filters.generation)
 }
+
+interface KnownValues {
+  /** Total de páginas da busca atual; null enquanto ela não carregou. */
+  totalPages: number | null
+  /** Tipos e gerações que existem no banco; null enquanto não carregaram. */
+  types: string[] | null
+  generations: number[] | null
+}
+
+/**
+ * Link antigo ou URL editada à mão: página além da última, tipo ou geração que não
+ * existe. Devolve os filtros corrigidos, ou null quando está tudo certo. Sem isso, a
+ * tela mostrava "1.025 encontrados" sem nenhum card, ou o seletor dizia "Todos"
+ * enquanto a lista filtrava por um tipo inexistente.
+ */
+export function correctFilters(filters: PokemonFilters, known: KnownValues): PokemonFilters | null {
+  let next = filters
+  if (known.types && next.type && !known.types.includes(next.type)) {
+    next = { ...next, type: '', page: 1 }
+  }
+  if (known.generations && next.generation && !known.generations.includes(next.generation)) {
+    next = { ...next, generation: null, page: 1 }
+  }
+  // A página só é conferida com o total da busca que está na URL.
+  if (next === filters && known.totalPages && filters.page > known.totalPages) {
+    next = { ...next, page: known.totalPages }
+  }
+  return next === filters ? null : next
+}

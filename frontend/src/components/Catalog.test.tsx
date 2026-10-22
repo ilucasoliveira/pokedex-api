@@ -31,6 +31,29 @@ function mockCatalogApi() {
 }
 
 describe('catálogo', () => {
+  it('não reaproveita os <li> do esqueleto para os cards (evita pulo de layout)', async () => {
+    mockCatalogApi()
+    renderRoute('/pokedex')
+    const skeleton = new Set(within(screen.getByRole('list', { name: 'Carregando Pokémon' })).getAllByRole('listitem'))
+
+    const cards = await screen.findAllByRole('article')
+
+    expect(cards.map((card) => card.closest('li')).filter((item) => item && skeleton.has(item))).toEqual([])
+  })
+
+  it('corrige a URL com página além da última ou tipo e geração que não existem', async () => {
+    mockCatalogApi()
+    const { router } = renderRoute('/pokedex?page=999&sort=-speed')
+
+    await waitFor(() => expect(router.state.location.search).toBe('?sort=-speed'))
+    expect(await screen.findAllByRole('article')).toHaveLength(3)
+
+    await router.navigate('/pokedex?type=banana&generation=99')
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(screen.getByLabelText('Tipo')).toHaveValue('')
+    expect(await screen.findByText('3 Pokémon encontrados')).toBeInTheDocument()
+  })
+
   it('lista os pokémons com o total vindo da API', async () => {
     mockCatalogApi()
     renderRoute('/pokedex')

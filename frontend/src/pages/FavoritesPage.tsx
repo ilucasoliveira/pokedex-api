@@ -67,7 +67,7 @@ export function FavoritesPage() {
           <ul className={catalog.grid}>
             {pokemons.map((pokemon, index) => (
               <li key={pokemon.id}>
-                <PokemonCard pokemon={pokemon} eager={index < 4} />
+                <PokemonCard pokemon={pokemon} eager={index < 4} headingLevel="h2" />
               </li>
             ))}
           </ul>

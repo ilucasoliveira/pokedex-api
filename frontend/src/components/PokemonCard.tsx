@@ -27,6 +27,8 @@ interface PokemonCardProps {
   /** No desktop, o clique abre o painel lateral em vez de trocar de página. */
   onSelect?: (id: number) => void
   selected?: boolean
+  /** Um nível abaixo do título da lista: h2 sob o h1 da página, h3 sob um h2. */
+  headingLevel?: 'h2' | 'h3'
 }
 
 export function PokemonCard({
@@ -35,6 +37,7 @@ export function PokemonCard({
   highlightStat = null,
   onSelect,
   selected = false,
+  headingLevel: Title = 'h3',
 }: PokemonCardProps) {
   const location = useLocation()
   const { discovered } = useJourney()
@@ -83,7 +86,7 @@ export function PokemonCard({
             loading={eager ? 'eager' : 'lazy'}
           />
         </span>
-        <h3 className={styles.name}>{name}</h3>
+        <Title className={styles.name}>{name}</Title>
       </Link>
       <FavoriteButton id={pokemon.id} name={name} className={styles.favorite} />
       <TypeList types={pokemon.types} />
@@ -99,9 +102,9 @@ export function PokemonCard({
 export function PokemonCardSkeleton() {
   return (
     <div className={`${styles.card} ${styles.skeleton}`} aria-hidden="true">
-      <span className={styles.skeletonLine} style={{ width: 56 }} />
+      <span className={`${styles.skeletonLine} ${styles.skeletonNumber}`} />
       <span className={styles.skeletonImage} />
-      <span className={styles.skeletonLine} style={{ width: '70%', height: 20 }} />
+      <span className={`${styles.skeletonLine} ${styles.skeletonName}`} />
       <span className={styles.skeletonLine} style={{ width: 72, height: 28 }} />
     </div>
   )
