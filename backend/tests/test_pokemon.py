@@ -773,3 +773,79 @@ async def test_list_pokemons_accepts_cached_page_from_before_stats(
 
     assert response.status_code == 200
     assert response.json()["data"][0]["stats"] is None
+
+
+# Números que não cabem na coluna INTEGER (o banco recusava e a API respondia 500)
+
+HUGE = "99999999999999999999"
+
+
+@pytest.mark.parametrize("value", ["3000000000", HUGE])
+async def test_read_pokemon_with_number_beyond_database_returns_404(
+    client: AsyncClient, value: str
+) -> None:
+    response = await client.get(f"/pokemons/{value}")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("value", ["²", "٣"])
+async def test_read_pokemon_with_unicode_digit_is_treated_as_name(
+    client: AsyncClient, value: str
+) -> None:
+    # "²".isdigit() é True, mas int("²") falha: era um 500.
+    await create_pokemon(client, id=3, name="venusaur")
+
+    response = await client.get(f"/pokemons/{value}")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "query",
+    [f"generation={HUGE}", f"offset={HUGE}", "generation=3000000000", "offset=3000000000"],
+)
+async def test_list_pokemons_with_number_beyond_database_returns_422(
+    client: AsyncClient, query: str
+) -> None:
+    response = await client.get(f"/pokemons?{query}")
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("search", ["3000000000", HUGE, "²"])
+async def test_list_pokemons_search_with_huge_or_unicode_number_returns_empty(
+    client: AsyncClient, search: str
+) -> None:
+    await create_pokemon(client)
+
+    response = await client.get("/pokemons", params={"search": search})
+
+    assert response.status_code == 200
+    assert response.json()["data"] == []
+
+
+async def test_list_pokemons_with_only_huge_ids_returns_empty_not_everything(
+    client: AsyncClient,
+) -> None:
+    await create_pokemon(client)
+
+    response = await client.get(f"/pokemons?ids=6,{HUGE}")
+    only_huge = await client.get(f"/pokemons?ids={HUGE}")
+
+    assert [p["id"] for p in response.json()["data"]] == [6]
+    assert only_huge.status_code == 200
+    assert only_huge.json()["data"] == []
+
+
+async def test_write_with_number_beyond_database_returns_422(client: AsyncClient) -> None:
+    await create_pokemon(client)
+
+    responses = [
+        await client.post("/pokemons", json=make_payload(id=3000000000, name="grande")),
+        await client.patch("/pokemons/6", json={"weight": 3000000000}),
+        await client.patch(f"/pokemons/{HUGE}", json={"weight": 1}),
+        await client.delete("/pokemons/3000000000"),
+    ]
+
+    assert [r.status_code for r in responses] == [422, 422, 422, 422]

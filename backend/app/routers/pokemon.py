@@ -7,7 +7,7 @@ from sqlalchemy.orm import QueryableAttribute, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import STAT_FIELDS, Pokemon, Type
+from app.models import MAX_DB_INT, STAT_FIELDS, Pokemon, Type
 from app.pokeapi import (
     PokeAPIUnavailable,
     PokemonNotFoundInPokeAPI,
@@ -184,7 +184,11 @@ async def read_one_pokemon(
     ),
     db: AsyncSession = Depends(get_db),
 ) -> PokemonResponse:
-    if id_or_name.isdigit():
+    # isascii: isdigit aceita "²" e outros dígitos Unicode, que o int() recusa.
+    if id_or_name.isascii() and id_or_name.isdigit():
+        if int(id_or_name) > MAX_DB_INT:
+            # Não cabe na coluna, então não existe (e o banco recusaria a consulta).
+            raise HTTPException(status_code=404, detail="Pokémon not found")
         pokemon_id: int | None = int(id_or_name)
     else:
         # O nome só é traduzido para o número; o cache continua por número,
@@ -239,7 +243,10 @@ async def read_pokemons(
         default=20, ge=1, le=100, description="Items per page (1 to 100)."
     ),
     offset: int = Query(
-        default=0, ge=0, description="Number of items to skip before the page."
+        default=0,
+        ge=0,
+        le=MAX_DB_INT,
+        description="Number of items to skip before the page.",
     ),
     search: str | None = Query(
         default=None,
@@ -260,6 +267,7 @@ async def read_pokemons(
     generation: int | None = Query(
         default=None,
         ge=1,
+        le=MAX_DB_INT,
         description="Generation in which the Pokémon was introduced.",
         examples=[1],
     ),
@@ -312,7 +320,7 @@ async def read_pokemons(
     if search:
         # autoescape trata % e _ digitados pelo usuário como texto, não como curinga.
         name_matches = Pokemon.name.contains(search, autoescape=True)
-        if search.isdigit():
+        if search.isascii() and search.isdigit() and int(search) <= MAX_DB_INT:
             # Busca por número aceita zeros à esquerda: "025" encontra o 25.
             filters.append(or_(Pokemon.id == int(search), name_matches))
         else:
@@ -321,8 +329,10 @@ async def read_pokemons(
         filters.append(Pokemon.types.any(Type.name == type_name))
     if generation:
         filters.append(Pokemon.generation == generation)
-    if id_list:
-        filters.append(Pokemon.id.in_(id_list))
+    if ids:
+        # Números que não cabem na coluna não existem; sem nenhum válido, a
+        # lista volta vazia (e não com todos os pokémons).
+        filters.append(Pokemon.id.in_([item for item in id_list if item <= MAX_DB_INT]))
 
     # Pokémon sem o atributo (cadastro manual) ficam sempre no fim; o número
     # desempata, para a paginação ser estável.
@@ -398,7 +408,9 @@ async def read_pokemons(
 )
 async def update_pokemon(
     new_data: PokemonUpdate,
-    pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
+    pokemon_id: int = Path(
+        ge=1, le=MAX_DB_INT, description="Pokédex number.", examples=[6]
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> Pokemon:
     result = await db.execute(
@@ -454,7 +466,9 @@ async def update_pokemon(
     responses={**UNAUTHORIZED, **NOT_FOUND},
 )
 async def delete_pokemon(
-    pokemon_id: int = Path(description="Pokédex number.", examples=[6]),
+    pokemon_id: int = Path(
+        ge=1, le=MAX_DB_INT, description="Pokédex number.", examples=[6]
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     result = await db.execute(select(Pokemon).where(Pokemon.id == pokemon_id))

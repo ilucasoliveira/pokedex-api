@@ -42,9 +42,12 @@ and delete Pokémon, with types modelled as a many-to-many relationship.
 
 Reading is public. Creating, importing, updating and deleting require a JWT:
 
-1. Create a user at `POST /auth/register`
+1. Create a user at `POST /auth/register` (closed in the public deployment, see below)
 2. Click **Authorize** and log in with the same username and password
 3. Protected endpoints now send the token automatically
+
+Any logged-in user can change and delete Pokémon, so the public deployment runs with
+registration closed (`ALLOW_REGISTRATION=false`). Run the API locally to try the writes.
 
 ## Units
 

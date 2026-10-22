@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import pytest
 from httpx import AsyncClient
 
 from app.security import ALGORITHM, SECRET_KEY
@@ -27,6 +28,33 @@ async def test_register_existing_username_returns_409(anon_client: AsyncClient) 
     response = await anon_client.post("/auth/register", json=USER)
 
     assert response.status_code == 409
+
+
+async def test_register_when_closed_returns_403(
+    anon_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ALLOW_REGISTRATION", "false")
+
+    response = await anon_client.post("/auth/register", json=USER)
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Registration is closed."}
+
+
+async def test_existing_user_still_logs_in_and_writes_when_registration_is_closed(
+    anon_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await anon_client.post("/auth/register", json=USER)
+    monkeypatch.setenv("ALLOW_REGISTRATION", "false")
+
+    token = (await anon_client.post("/auth/token", data=USER)).json()["access_token"]
+    response = await anon_client.post(
+        "/pokemons",
+        json={"id": 120, "name": "staryu", "height": 8, "weight": 345, "types": ["water"]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
 
 
 async def test_register_with_short_password_returns_422(anon_client: AsyncClient) -> None:

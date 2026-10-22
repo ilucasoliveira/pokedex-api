@@ -14,6 +14,10 @@ STAT_FIELDS = (
 )
 
 
+# Maior valor de uma coluna INTEGER no PostgreSQL. Número acima disso na entrada
+# fazia o banco recusar a consulta, e a API respondia 500 em vez de 404 ou 422.
+MAX_DB_INT = 2_147_483_647
+
 class Base(DeclarativeBase):
     pass
 

@@ -1,6 +1,9 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -11,20 +14,34 @@ from app.security import create_access_token, hash_password, verify_password
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def registration_enabled() -> bool:
+    # Qualquer usuário logado pode alterar e apagar pokémons, então em produção o
+    # cadastro fica fechado (ALLOW_REGISTRATION=false no render.yaml). Lido a cada
+    # requisição para os testes poderem trocar o valor.
+    value = os.getenv("ALLOW_REGISTRATION", "true").strip().lower()
+    return value not in {"false", "0", "no", "off"}
+
+
 @router.post(
     "/register",
     status_code=201,
     response_model=UserResponse,
     summary="Register a user",
     description=(
-        "Creates a new user. Registration is open. The username is stored in "
-        "lowercase and the password is stored only as a bcrypt hash."
+        "Creates a new user. The username is stored in lowercase and the password "
+        "is stored only as a bcrypt hash. Registration can be closed with the "
+        "`ALLOW_REGISTRATION=false` setting, as in the public deployment, because "
+        "any logged-in user can change and delete Pokémon."
     ),
     responses={
-        409: {"model": ErrorResponse, "description": "Username already exists."}
+        403: {"model": ErrorResponse, "description": "Registration is closed."},
+        409: {"model": ErrorResponse, "description": "Username already exists."},
     },
 )
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
+    if not registration_enabled():
+        raise HTTPException(status_code=403, detail="Registration is closed.")
+
     result = await db.execute(select(User).where(User.username == user.username))
     if result.scalars().first():
         raise HTTPException(status_code=409, detail="Username already exists.")
@@ -33,7 +50,12 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)) -> User
         username=user.username, hashed_password=hash_password(user.password)
     )
     db.add(new_user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Dois cadastros simultâneos com o mesmo nome: a constraint do banco decide.
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Username already exists.")
 
     return new_user
 
