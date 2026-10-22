@@ -15,6 +15,7 @@ Interface web da Pokedex API, seguindo o kit de design Rota151 e o slogan dele, 
 - **Vistos recentemente**, para retomar a exploração
 - Hero ilustrado (trilha, montanhas e a placa da Rota 151, em SVG próprio com as cores do kit), com animações leves que somem com movimento reduzido
 - **Português e inglês**: botão `EN`/`PT` no header. Toda a interface muda, inclusive números (`1.025` / `1,025`), unidades (`0,4 m` / `0.4 m`), tipos (Fogo / Fire), atributos e as condições de evolução. Sem escolha salva, vale o idioma do navegador
+- **App no celular (PWA)**: o site se instala no Android e no iPhone como um app, sem loja: ícone na tela inicial, tela cheia e funcionamento sem internet para o que já foi visto. Veja [App no celular](#app-no-celular)
 - **Modo claro e escuro**: botão de sol/lua no header. Sem escolha salva, segue o tema do sistema. O escuro é uma "noite na trilha": fundos castanho-escuros, cards tingidos pela cor do tipo e a paisagem do hero mais escura
 
 ## Stack
@@ -59,6 +60,27 @@ VITE_API_URL=http://localhost:8000
 | `npm run lint`    | oxlint                                     |
 | `npm run build`   | Checa os tipos e gera o build em `dist/`   |
 | `npm run preview` | Serve o build localmente                   |
+| `npm run icons`   | Gera os ícones do app a partir de `public/app-icon.svg` |
+
+## App no celular
+
+A Rota151 é um PWA (Progressive Web App), feito com o `vite-plugin-pwa`. Não há versão nas lojas: o próprio site se instala.
+
+- **Android (Chrome)**: o botão **Instalar o app**, no rodapé e na página Sobre, abre o instalador do navegador. Também dá para usar o menu do Chrome → "Instalar app"
+- **iPhone e iPad (Safari)**: o iOS não deixa o site abrir o instalador. O botão **Instalar no iPhone** explica o caminho: Compartilhar → "Adicionar à Tela de Início"
+- Instalado, o app abre em tela cheia, com o ícone da Rota151, e o botão some
+
+**Sem internet**, o service worker (Workbox) entrega:
+
+- a interface inteira (HTML, JS, CSS, fontes e ícones, guardados na instalação);
+- as respostas da API já vistas (rede primeiro, com 8 s de espera; sem rede, a última resposta guardada, por até 14 dias);
+- as imagens já vistas do repositório da PokéAPI (cache primeiro, até 2.500 imagens por 60 dias).
+
+Uma faixa abaixo do header avisa quando a conexão cai. O que nunca foi aberto no aparelho não aparece offline. Cada deploy gera um service worker novo, que se atualiza sozinho na próxima visita.
+
+Os ícones (`pwa-*.png`, `maskable-icon-512x512.png`, `apple-touch-icon-180x180.png` e `favicon.ico`) saem de `public/app-icon.svg` com `npm run icons` (configuração em `pwa-assets.config.ts`). O SVG tem fundo creme sem transparência porque o iOS pinta os cantos transparentes de preto.
+
+Para testar localmente, use o build (`npm run build` e `npm run preview -- --port 5173`): o `npm run dev` não registra o service worker. A porta 5173 importa porque é a origem que a API libera no CORS.
 
 ## Páginas
 
@@ -106,10 +128,11 @@ src/
 - **Arrastar sem biblioteca**: a pedra usa Pointer Events (mouse, caneta e toque do mesmo jeito) e não o drag-and-drop nativo do HTML, que não funciona no celular. Quem não consegue arrastar clica ou usa o teclado. Durante a animação, a ficha e a arte do evoluído já são baixadas, e a troca de página é instantânea
 - **Dados derivados, não inventados**: a tabela de fraquezas é a oficial dos jogos (Geração VI em diante) e não considera habilidades, o que a tela avisa. A arte shiny e o grito vêm do repositório público da PokéAPI, no mesmo padrão de URL que ela usa; se não existirem, a arte normal volta e aparece "Grito indisponível". O botão de grito some em navegadores sem suporte a OGG
 - **Sem conteúdo pulando**: a faixa de vistos recentemente é a de quando a página abriu, então abrir um Pokémon no painel não empurra a lista
+- **PWA em vez de app nativo**: o mesmo código serve o site e o app, sem loja nem segunda base de código. O cache da API é "rede primeiro" para os dados nunca ficarem velhos com conexão, e o das imagens é "cache primeiro" porque elas não mudam. O padrão da API é uma expressão regular, não uma função: o Workbox copia a função como texto para o `sw.js`, onde as variáveis do `vite.config.ts` não existem
 - **Busca com debounce de 300 ms**: o Enter busca na hora, digitar não enche o histórico do navegador (a URL é substituída), e buscas antigas são canceladas pelo TanStack Query
 
 ## Deploy
 
-Site estático no Render, descrito no [`render.yaml`](../render.yaml) da raiz (serviço `rota151`): build com `npm ci && npm run build`, publicação do `dist/` e `VITE_API_URL` apontando para a API publicada. O Render publica sozinho quando um push na `main` mexe em `frontend/` e os checks do CI passam. Como é uma SPA, qualquer caminho sem arquivo recebe o `index.html`.
+Site estático no Render, descrito no [`render.yaml`](../render.yaml) da raiz (serviço `rota151`): build com `npm ci && npm run build`, publicação do `dist/` e `VITE_API_URL` apontando para a API publicada. O Render publica sozinho quando um push na `main` mexe em `frontend/` e os checks do CI passam. Como é uma SPA, qualquer caminho sem arquivo recebe o `index.html`. O `sw.js`, o `registerSW.js` e o `manifest.webmanifest` vão com `Cache-Control: no-cache`, para as atualizações do app chegarem na hora.
 
 O endereço do site precisa estar na `CORS_ORIGINS` da API, senão o navegador bloqueia as chamadas.

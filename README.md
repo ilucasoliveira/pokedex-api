@@ -44,7 +44,7 @@ Além do CRUD, a API importa pokémons direto da PokéAPI, guarda leituras em ca
 
 ## Estrutura do projeto
 
-O repositório tem duas partes: a API em `backend/` e a interface web **Rota151** em `frontend/` (React + TypeScript + Vite, em português e inglês, com modo claro e escuro), documentada no [README próprio](frontend/README.md).
+O repositório tem duas partes: a API em `backend/` e a interface web **Rota151** em `frontend/` (React + TypeScript + Vite, em português e inglês, com modo claro e escuro, instalável como app no Android e no iPhone), documentada no [README próprio](frontend/README.md).
 
 ```
 pokedex-api/
@@ -487,7 +487,7 @@ A infraestrutura está descrita no [`render.yaml`](render.yaml) (Blueprint): o s
 
 O deploy automático da API fica **desligado** de propósito: quem dispara o deploy é o GitHub Actions, e só depois que os testes, o build e a publicação da imagem passam.
 
-O front-end (`rota151`) é um site estático: o Render roda `npm ci && npm run build` em `frontend/` e serve o `dist/` por CDN. Ele publica sozinho a cada push na `main` que mexa em `frontend/`, mas só depois que os checks do GitHub Actions passam (`autoDeployTrigger: checksPass`). Qualquer caminho sem arquivo (ex.: `/pokemon/25`) recebe o `index.html`, e o React Router resolve a rota; os arquivos de `/assets`, que têm hash no nome, ficam em cache por um ano.
+O front-end (`rota151`) é um site estático: o Render roda `npm ci && npm run build` em `frontend/` e serve o `dist/` por CDN. Ele publica sozinho a cada push na `main` que mexa em `frontend/`, mas só depois que os checks do GitHub Actions passam (`autoDeployTrigger: checksPass`). Qualquer caminho sem arquivo (ex.: `/pokemon/25`) recebe o `index.html`, e o React Router resolve a rota; os arquivos de `/assets`, que têm hash no nome, ficam em cache por um ano. O site também é um PWA: o service worker e o manifest vão com `no-cache`, para as atualizações do app chegarem na hora.
 
 **Para reproduzir em outra conta do Render:**
 
