@@ -26,6 +26,12 @@ export const pt = {
   'footer.disclaimer':
     'Projeto de fã, sem fins lucrativos e sem afiliação com Nintendo, Game Freak ou The Pokémon Company. Pokémon e os nomes relacionados são marcas de seus respectivos donos.',
 
+  // App instalável e conexão
+  'install.button': 'Instalar o app',
+  'install.ios': 'Instalar no iPhone',
+  'install.iosHelp': 'No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.',
+  'offline.banner': 'Você está offline. Mostrando o que já foi visto neste aparelho.',
+
   // Estados
   'status.errorDescription':
     'A API não respondeu como esperado. Confira sua conexão e tente de novo em alguns instantes.',
@@ -268,6 +274,11 @@ export const en: Messages = {
   'footer.credits': '© {year} Rota151 · Built by',
   'footer.disclaimer':
     'Non-profit fan project, not affiliated with Nintendo, Game Freak or The Pokémon Company. Pokémon and related names are trademarks of their respective owners.',
+
+  'install.button': 'Install the app',
+  'install.ios': 'Install on iPhone',
+  'install.iosHelp': 'In Safari, tap Share and then “Add to Home Screen”.',
+  'offline.banner': "You're offline. Showing what you've already seen on this device.",
 
   'status.errorDescription': "The API didn't respond as expected. Check your connection and try again in a moment.",
   'status.retry': 'Try again',

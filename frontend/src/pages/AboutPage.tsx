@@ -1,6 +1,7 @@
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { t } from '../i18n'
 import { API_URL } from '../services/pokemonApi'
+import { InstallApp } from '../components/InstallApp'
 import { getLanguage } from '../store/preferences'
 import styles from './AboutPage.module.css'
 
@@ -27,6 +28,14 @@ function ContentPt() {
         As descrições da Pokédex aparecem em inglês, porque é assim que a PokéAPI as oferece.
         Nomes de habilidades e itens também ficam no original.
       </p>
+
+      <h2 className={styles.subtitle}>App no celular</h2>
+      <p>
+        A Rota151 pode ser instalada no Android e no iPhone, como um app: ícone na tela inicial,
+        tela cheia e funcionamento sem internet para o que você já viu. Não precisa de loja, e as
+        atualizações chegam sozinhas.
+      </p>
+      <InstallApp />
 
       <h2 className={styles.subtitle}>Sua jornada</h2>
       <p>
@@ -73,6 +82,14 @@ function ContentEn() {
         Its documentation is at <a href={`${API_URL}/docs`}>{API_URL}/docs</a>.
       </p>
       <p>Ability and item names are kept as PokéAPI provides them.</p>
+
+      <h2 className={styles.subtitle}>Mobile app</h2>
+      <p>
+        Rota151 can be installed on Android and iPhone like an app: an icon on your home screen,
+        full screen, and offline access to what you've already seen. No app store needed, and
+        updates arrive on their own.
+      </p>
+      <InstallApp />
 
       <h2 className={styles.subtitle}>Your journey</h2>
       <p>

@@ -11,6 +11,8 @@ import '@fontsource/nunito-sans/latin-ext-700.css'
 import '@fontsource/press-start-2p/latin-400.css'
 import './styles/tokens.css'
 import './styles/global.css'
+// Antes do React: o navegador pode avisar que o app é instalável logo ao carregar.
+import './store/installPrompt'
 
 import { QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
