@@ -125,7 +125,8 @@ a {
   width: 100%;
   max-width: var(--max-container);
   margin-inline: auto;
-  padding-inline: var(--page-gutter);
+  /* No iPhone deitado, o conteúdo não fica embaixo do notch. */
+  padding-inline: max(var(--page-gutter), env(safe-area-inset-left)) max(var(--page-gutter), env(safe-area-inset-right));
 }
 
 /* Some da tela, mas continua para leitores de tela. */

@@ -1,6 +1,7 @@
 .footer {
   margin-top: var(--space-64);
-  padding: var(--space-32) 0 var(--space-24);
+  /* Barra de gestos do celular não cobre os créditos. */
+  padding: var(--space-32) 0 max(var(--space-24), env(safe-area-inset-bottom));
   background: var(--color-surface-alt);
   border-top: 1px solid var(--color-border);
   font-size: var(--font-size-label);
