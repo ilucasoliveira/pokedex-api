@@ -36,6 +36,11 @@ services:
       # só libera o Vite local (http://localhost:5173).
       - key: CORS_ORIGINS
         sync: false
+      # Qualquer usuário logado pode alterar e apagar pokémons; por isso o
+      # cadastro público fica fechado. Para criar um usuário, mude para "true",
+      # cadastre e volte para "false".
+      - key: ALLOW_REGISTRATION
+        value: "false"
 
   # Front-end Rota151: site estático (gratuito, servido por CDN). Os caminhos
   # abaixo são relativos ao rootDir; mudanças fora de frontend/ não geram build.
@@ -78,6 +83,22 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+      # O site não pode ser embutido em outro (clickjacking) nem usar câmera,
+      # microfone ou localização.
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+      # Só carrega o que o site usa: a API, as imagens e os gritos do repositório
+      # da PokéAPI e os próprios arquivos. O hash é do script inline do index.html
+      # (tema e idioma antes do primeiro desenho); se ele mudar, o teste
+      # frontend/deploy.test.ts falha e mostra o hash novo. O 'unsafe-inline' em
+      # style-src é para os atributos style do React (cores dos tipos).
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'sha256-v35/lhkbjxAlGAMcZCfY75XdeQ0CPe56NJMhF5dMJek='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://raw.githubusercontent.com; media-src https://raw.githubusercontent.com; font-src 'self'; connect-src 'self' https://pokedex-api-cb8d.onrender.com https://raw.githubusercontent.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
   - type: keyvalue
     name: pokedex-cache

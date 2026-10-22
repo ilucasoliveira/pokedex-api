@@ -135,4 +135,6 @@ src/
 
 Site estático no Render, descrito no [`render.yaml`](../render.yaml) da raiz (serviço `rota151`): build com `npm ci && npm run build`, publicação do `dist/` e `VITE_API_URL` apontando para a API publicada. O Render publica sozinho quando um push na `main` mexe em `frontend/` e os checks do CI passam. Como é uma SPA, qualquer caminho sem arquivo recebe o `index.html`. O `sw.js`, o `registerSW.js` e o `manifest.webmanifest` vão com `Cache-Control: no-cache`, para as atualizações do app chegarem na hora.
 
+Headers de segurança, também no `render.yaml`: `Content-Security-Policy` (só a própria origem, a API e o repositório de imagens da PokéAPI; o script inline do `index.html` é liberado pelo hash), `X-Frame-Options: DENY`, `Permissions-Policy`, `nosniff` e `Referrer-Policy`. O teste `deploy.test.ts` recalcula o hash do script e confere a API na CSP: se o `index.html` mudar, ele falha e mostra o hash novo para colar no `render.yaml`.
+
 O endereço do site precisa estar na `CORS_ORIGINS` da API, senão o navegador bloqueia as chamadas.

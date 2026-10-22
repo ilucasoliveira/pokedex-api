@@ -235,12 +235,15 @@ Em produção, o mesmo import está em `POST /pokemons/import` (com token), que 
 | `JWT_ALGORITHM`               | `HS256`                                                                       | Algoritmo de assinatura do JWT                                                          |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                                                          | Validade do token, em minutos                                                           |
 | `CORS_ORIGINS`                | `http://localhost:5173,https://meu-front.com`                                 | Opcional. Origens que podem chamar a API pelo navegador, separadas por vírgula. Padrão: `http://localhost:5173` (Vite) |
+| `ALLOW_REGISTRATION`          | `false`                                                                       | Opcional. `false` fecha o `POST /auth/register` (403). Padrão: `true`. Em produção fica `false` |
 
 Nenhuma credencial fica no código: tudo vem do `.env`, que está no `.gitignore`.
 
 ## Autenticação
 
 Leitura é pública. Criar, importar, editar e excluir exigem token.
+
+Qualquer usuário logado pode alterar e apagar pokémons, então **na API publicada o cadastro fica fechado** (`ALLOW_REGISTRATION=false` no `render.yaml`): `POST /auth/register` responde 403, e só quem já tem usuário consegue escrever. Localmente o cadastro é aberto. Para criar um usuário em produção, mude a variável para `true` no painel do Render, cadastre e volte para `false`.
 
 **Pelo Swagger (`/docs`):**
 
